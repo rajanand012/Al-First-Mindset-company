@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Assessment History | AI-First Mindset{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h2 class="fw-bold mb-4"><i class="bi bi-clock-history"></i> Assessment History</h2>
+
+    {% if assessments %}
+    <div class="table-responsive">
+        <table class="table table-hover bg-white rounded">
+            <thead class="table-light">
+                <tr>
+                    <th>Company</th>
+                    <th>Website</th>
+                    <th>Segment</th>
+                    <th>Score</th>
+                    <th>Grade</th>
+                    <th>Date</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in assessments %}
+                <tr>
+                    <td class="fw-semibold">{{ a.company_name }}</td>
+                    <td><small class="text-muted">{{ a.website_url }}</small></td>
+                    <td><small>{{ a.industry_segment or '—' }}</small></td>
+                    <td>{{ a.percentage }}%</td>
+                    <td>
+                        <span class="badge bg-{% if a.percentage >= 70 %}success{% elif a.percentage >= 50 %}primary{% elif a.percentage >= 30 %}warning{% else %}danger{% endif %}">
+                            {{ a.grade }}
+                        </span>
+                    </td>
+                    <td><small>{{ a.created_at[:10] }}</small></td>
+                    <td>
+                        <a href="/results/{{ a.id }}" class="btn btn-sm btn-outline-primary">View</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="bi bi-inbox display-1 text-muted"></i>
+        <p class="mt-3 text-muted">No assessments yet. <a href="/">Run your first assessment</a>.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

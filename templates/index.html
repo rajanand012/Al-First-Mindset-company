@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}AI-First Mindset Assessment Tool{% endblock %}
+
+{% block content %}
+<div class="hero-section text-center">
+    <div class="container">
+        <h1 class="display-5 fw-bold mb-3">AI-First Mindset Assessment</h1>
+        <p class="lead mb-0">Evaluate any manufacturer's AI maturity with a structured, consistent scoring rubric</p>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <div class="card p-4">
+                <h4 class="mb-4"><i class="bi bi-clipboard2-data"></i> Start Assessment</h4>
+                <form action="/assess" method="POST" id="assessForm">
+                    <div class="mb-3">
+                        <label for="company_name" class="form-label fw-semibold">Company Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-lg" id="company_name" name="company_name"
+                               placeholder="e.g. Siemens, Honeywell, Rockwell Automation" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="website_url" class="form-label fw-semibold">Company Website <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-lg" id="website_url" name="website_url"
+                               placeholder="e.g. https://www.siemens.com" required>
+                        <div class="form-text">We'll scan the homepage and key pages (about, products, technology, etc.)</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="industry_segment" class="form-label fw-semibold">Manufacturing Segment</label>
+                        <select class="form-select" id="industry_segment" name="industry_segment">
+                            <option value="">Select segment (optional)</option>
+                            <option value="Automotive">Automotive</option>
+                            <option value="Aerospace & Defense">Aerospace & Defense</option>
+                            <option value="Chemical & Process">Chemical & Process</option>
+                            <option value="Consumer Goods">Consumer Goods</option>
+                            <option value="Electronics & Semiconductor">Electronics & Semiconductor</option>
+                            <option value="Energy & Utilities">Energy & Utilities</option>
+                            <option value="Food & Beverage">Food & Beverage</option>
+                            <option value="Industrial Equipment">Industrial Equipment</option>
+                            <option value="Medical Devices">Medical Devices</option>
+                            <option value="Metals & Mining">Metals & Mining</option>
+                            <option value="Packaging">Packaging</option>
+                            <option value="Pharmaceutical">Pharmaceutical</option>
+                            <option value="Plastics & Rubber">Plastics & Rubber</option>
+                            <option value="Textiles">Textiles</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="company_size" class="form-label fw-semibold">Company Size</label>
+                        <select class="form-select" id="company_size" name="company_size">
+                            <option value="">Select size (optional)</option>
+                            <option value="Small (1-50 employees)">Small (1-50 employees)</option>
+                            <option value="Medium (51-500 employees)">Medium (51-500 employees)</option>
+                            <option value="Large (501-5,000 employees)">Large (501-5,000 employees)</option>
+                            <option value="Enterprise (5,000+ employees)">Enterprise (5,000+ employees)</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-ai btn-lg w-100" id="submitBtn">
+                        <i class="bi bi-lightning-charge-fill"></i> Run AI Assessment
+                    </button>
+                </form>
+            </div>
+
+            <div class="card p-4 mt-4">
+                <h5 class="mb-3"><i class="bi bi-info-circle"></i> How It Works</h5>
+                <div class="row g-3">
+                    <div class="col-md-4 text-center">
+                        <div class="fs-1 text-primary"><i class="bi bi-globe2"></i></div>
+                        <h6>1. Web Scan</h6>
+                        <small class="text-muted">We scan your website's key pages for AI-related content</small>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="fs-1 text-primary"><i class="bi bi-bar-chart-line"></i></div>
+                        <h6>2. Structured Scoring</h6>
+                        <small class="text-muted">10 categories scored 1-5 using a consistent rubric</small>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="fs-1 text-primary"><i class="bi bi-graph-up-arrow"></i></div>
+                        <h6>3. Track Progress</h6>
+                        <small class="text-muted">Results stored for comparison over time</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('assessForm').addEventListener('submit', function() {
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Scanning website & scoring (30-60s)...';
+});
+</script>
+{% endblock %}

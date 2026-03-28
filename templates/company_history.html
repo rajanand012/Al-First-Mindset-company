@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{{ company_name }} History | AI-First Mindset{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h2 class="fw-bold mb-2">{{ company_name }}</h2>
+    <p class="text-muted mb-4">Assessment history &mdash; {{ assessments | length }} assessment(s)</p>
+
+    {% if assessments | length > 1 %}
+    <div class="card p-4 mb-4">
+        <h5><i class="bi bi-graph-up-arrow"></i> Score Trend</h5>
+        <div class="d-flex align-items-end gap-2" style="height: 120px;">
+            {% for a in assessments | reverse %}
+            <div class="text-center flex-fill">
+                <div class="bg-primary rounded-top mx-auto" style="width: 40px; height: {{ (a.percentage * 1.1) | round }}px; opacity: {{ 0.4 + (loop.index / assessments|length) * 0.6 }};"></div>
+                <small class="d-block mt-1 fw-bold">{{ a.percentage }}%</small>
+                <small class="text-muted">{{ a.created_at[:10] }}</small>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row g-4">
+        {% for a in assessments %}
+        <div class="col-md-6">
+            <div class="card p-4 h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h5 class="mb-1">{{ a.percentage }}% <span class="badge bg-{% if a.percentage >= 70 %}success{% elif a.percentage >= 50 %}primary{% elif a.percentage >= 30 %}warning{% else %}danger{% endif %}">{{ a.grade }}</span></h5>
+                        <small class="text-muted">{{ a.created_at[:16] }}</small>
+                    </div>
+                    <a href="/results/{{ a.id }}" class="btn btn-sm btn-outline-primary">Full Report</a>
+                </div>
+                <hr>
+                <div class="small">
+                    {% for cat in a.category_scores %}
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>{{ cat.name }}</span>
+                        <span class="fw-bold">{{ cat.score }}/5</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="text-center mt-4">
+        <a href="/" class="btn btn-ai"><i class="bi bi-arrow-repeat"></i> Re-assess {{ company_name }}</a>
+    </div>
+</div>
+{% endblock %}
