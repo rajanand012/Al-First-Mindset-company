@@ -24,7 +24,7 @@
         <!-- Overall Score -->
         <div class="col-lg-4">
             <div class="card p-4 text-center">
-                <h5 class="mb-3">Overall Score</h5>
+                <h5 class="mb-3">AI-First Adoption Score</h5>
                 {% set grade_class = {
                     'A+': 'grade-a-plus', 'A': 'grade-a',
                     'B+': 'grade-b-plus', 'B': 'grade-b',
@@ -35,7 +35,7 @@
                     <span>{{ assessment.grade }}</span>
                     <small style="font-size: 0.9rem; font-weight: 400;">{{ assessment.percentage }}%</small>
                 </div>
-                <p class="mt-3 mb-1 fw-semibold">{{ assessment.percentage }}% &mdash; {{ assessment.get('grade_label', '') or 'Assessed' }}</p>
+                <p class="mt-3 mb-1 fw-semibold fs-5">{{ assessment.grade_label or '' }}</p>
                 <p class="text-muted small">{{ assessment.overall_score }} / {{ assessment.max_score }} points</p>
 
                 {% if previous %}
@@ -53,14 +53,16 @@
             </div>
 
             <!-- Recommendations -->
+            {% if assessment.recommendations %}
             <div class="card p-4 mt-4">
-                <h5 class="mb-3"><i class="bi bi-lightbulb"></i> Recommendations</h5>
+                <h5 class="mb-3"><i class="bi bi-lightbulb" style="color: var(--ai-yellow);"></i> AI-Powered Recommendations</h5>
                 <ol class="mb-0">
                     {% for rec in assessment.recommendations %}
                     <li class="mb-2">{{ rec }}</li>
                     {% endfor %}
                 </ol>
             </div>
+            {% endif %}
         </div>
 
         <!-- Category Breakdown -->
@@ -68,9 +70,10 @@
             <div class="card p-4">
                 <h5 class="mb-4"><i class="bi bi-bar-chart-line"></i> Category Breakdown</h5>
 
-                {% if assessment.get('executive_summary') %}
+                {% if assessment.executive_summary %}
                 <div class="alert alert-light border mb-4">
-                    <i class="bi bi-chat-quote"></i> <strong>Executive Summary:</strong> {{ assessment.executive_summary }}
+                    <i class="bi bi-chat-quote" style="color: var(--ai-blue);"></i>
+                    <strong>Executive Summary:</strong> {{ assessment.executive_summary }}
                 </div>
                 {% endif %}
 
@@ -86,7 +89,7 @@
                         <div class="category-bar-fill bg-{% if cat.score >= 4 %}success{% elif cat.score >= 3 %}primary{% elif cat.score >= 2 %}warning{% else %}danger{% endif %}"
                              style="width: {{ (cat.score / cat.max_score * 100) | round }}%"></div>
                     </div>
-                    <small class="text-muted">{{ cat.evidence }}</small>
+                    <small class="text-muted">{{ cat.selected_label }}</small>
 
                     {% if previous %}
                     {% set prev_cat = previous.category_scores | selectattr('category_id', 'equalto', cat.category_id) | list %}

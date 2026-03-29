@@ -1,12 +1,10 @@
-"""SQLite database for storing assessments and web cache."""
+"""SQLite database for storing assessments."""
 
 import sqlite3
 import json
 import os
-from datetime import datetime, timedelta
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "assessments.db")
-CACHE_TTL_DAYS = 7
 
 
 def get_db():
@@ -28,63 +26,19 @@ def init_db():
             max_score REAL NOT NULL,
             percentage REAL NOT NULL,
             grade TEXT NOT NULL,
+            grade_label TEXT,
             category_scores TEXT NOT NULL,  -- JSON
-            recommendations TEXT NOT NULL,  -- JSON
-            web_content_hash TEXT,
+            recommendations TEXT,           -- JSON
+            executive_summary TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-
-        CREATE TABLE IF NOT EXISTS web_cache (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            url TEXT NOT NULL UNIQUE,
-            content TEXT NOT NULL,
-            fetched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
         CREATE INDEX IF NOT EXISTS idx_assessments_company
             ON assessments(company_name, website_url);
-        CREATE INDEX IF NOT EXISTS idx_web_cache_url
-            ON web_cache(url);
     """)
     conn.commit()
     conn.close()
 
-
-# --- Web Cache ---
-
-def get_cached_content(url):
-    """Return cached web content if within TTL, else None."""
-    conn = get_db()
-    row = conn.execute(
-        "SELECT content, fetched_at FROM web_cache WHERE url = ?", (url,)
-    ).fetchone()
-    conn.close()
-
-    if row is None:
-        return None
-
-    fetched_at = datetime.fromisoformat(row["fetched_at"])
-    if datetime.now() - fetched_at > timedelta(days=CACHE_TTL_DAYS):
-        return None
-
-    return row["content"]
-
-
-def set_cached_content(url, content):
-    """Store or update cached web content."""
-    conn = get_db()
-    conn.execute(
-        """INSERT INTO web_cache (url, content, fetched_at)
-           VALUES (?, ?, ?)
-           ON CONFLICT(url) DO UPDATE SET content=?, fetched_at=?""",
-        (url, content, datetime.now().isoformat(),
-         content, datetime.now().isoformat()),
-    )
-    conn.commit()
-    conn.close()
-
-
-# --- Assessments ---
 
 def save_assessment(data):
     """Save a completed assessment. Returns the new row id."""
@@ -92,9 +46,9 @@ def save_assessment(data):
     cur = conn.execute(
         """INSERT INTO assessments
            (company_name, website_url, industry_segment, company_size,
-            overall_score, max_score, percentage, grade,
-            category_scores, recommendations, web_content_hash)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            overall_score, max_score, percentage, grade, grade_label,
+            category_scores, recommendations, executive_summary)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             data["company_name"],
             data["website_url"],
@@ -104,9 +58,10 @@ def save_assessment(data):
             data["max_score"],
             data["percentage"],
             data["grade"],
+            data.get("grade_label", ""),
             json.dumps(data["category_scores"]),
-            json.dumps(data["recommendations"]),
-            data.get("web_content_hash", ""),
+            json.dumps(data.get("recommendations", [])),
+            data.get("executive_summary", ""),
         ),
     )
     conn.commit()
@@ -116,7 +71,6 @@ def save_assessment(data):
 
 
 def get_assessment(assessment_id):
-    """Retrieve a single assessment by id."""
     conn = get_db()
     row = conn.execute(
         "SELECT * FROM assessments WHERE id = ?", (assessment_id,)
@@ -128,7 +82,6 @@ def get_assessment(assessment_id):
 
 
 def get_company_history(company_name):
-    """Get all past assessments for a company, newest first."""
     conn = get_db()
     rows = conn.execute(
         """SELECT * FROM assessments
@@ -140,7 +93,6 @@ def get_company_history(company_name):
 
 
 def get_all_assessments():
-    """Get all assessments, newest first."""
     conn = get_db()
     rows = conn.execute(
         "SELECT * FROM assessments ORDER BY created_at DESC"
@@ -152,5 +104,6 @@ def get_all_assessments():
 def _row_to_dict(row):
     d = dict(row)
     d["category_scores"] = json.loads(d["category_scores"])
-    d["recommendations"] = json.loads(d["recommendations"])
+    recs = d.get("recommendations")
+    d["recommendations"] = json.loads(recs) if recs else []
     return d

@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}AI-First Mindset Assessment Tool{% endblock %}
+{% block title %}AI-First Mindset — Manufacturer AI Adoption Assessment{% endblock %}
 
 {% block content %}
 <div class="hero-section text-center">
     <div class="container">
-        <h1 class="display-5 fw-bold mb-3">AI-First Mindset Assessment</h1>
-        <p class="lead mb-0">Evaluate any manufacturer's AI maturity with a structured, consistent scoring rubric</p>
+        <h1 class="display-5 fw-bold mb-3">AI-First Adoption Score</h1>
+        <p class="lead mb-0">Assess your manufacturing company's AI maturity in under 5 minutes</p>
     </div>
 </div>
 
@@ -13,8 +13,10 @@
     <div class="row justify-content-center">
         <div class="col-lg-7">
             <div class="card p-4">
-                <h4 class="mb-4"><i class="bi bi-clipboard2-data"></i> Start Assessment</h4>
-                <form action="/assess" method="POST" id="assessForm">
+                <h4 class="mb-4"><i class="bi bi-building"></i> Company Details</h4>
+                <form action="/assess" method="POST">
+                    <input type="hidden" name="step" value="company_info">
+
                     <div class="mb-3">
                         <label for="company_name" class="form-label fw-semibold">Company Name <span class="text-danger">*</span></label>
                         <input type="text" class="form-control form-control-lg" id="company_name" name="company_name"
@@ -25,7 +27,6 @@
                         <label for="website_url" class="form-label fw-semibold">Company Website <span class="text-danger">*</span></label>
                         <input type="text" class="form-control form-control-lg" id="website_url" name="website_url"
                                placeholder="e.g. https://www.siemens.com" required>
-                        <div class="form-text">We'll scan the homepage and key pages (about, products, technology, etc.)</div>
                     </div>
 
                     <div class="mb-3">
@@ -61,8 +62,8 @@
                         </select>
                     </div>
 
-                    <button type="submit" class="btn btn-ai btn-lg w-100" id="submitBtn">
-                        <i class="bi bi-lightning-charge-fill"></i> Run AI Assessment
+                    <button type="submit" class="btn btn-ai btn-lg w-100">
+                        <i class="bi bi-arrow-right-circle-fill"></i> Start Assessment
                     </button>
                 </form>
             </div>
@@ -71,33 +72,23 @@
                 <h5 class="mb-3"><i class="bi bi-info-circle"></i> How It Works</h5>
                 <div class="row g-3">
                     <div class="col-md-4 text-center">
-                        <div class="fs-1 text-primary"><i class="bi bi-globe2"></i></div>
-                        <h6>1. Web Scan</h6>
-                        <small class="text-muted">We scan your website's key pages for AI-related content</small>
+                        <div class="fs-1 text-primary"><i class="bi bi-building"></i></div>
+                        <h6>1. Company Info</h6>
+                        <small class="text-muted">Enter your company name and website</small>
                     </div>
                     <div class="col-md-4 text-center">
-                        <div class="fs-1 text-primary"><i class="bi bi-bar-chart-line"></i></div>
-                        <h6>2. Structured Scoring</h6>
-                        <small class="text-muted">10 categories scored 1-5 using a consistent rubric</small>
+                        <div class="fs-1 text-primary"><i class="bi bi-ui-checks"></i></div>
+                        <h6>2. 10 Questions</h6>
+                        <small class="text-muted">Answer 10 quick questions about your AI adoption</small>
                     </div>
                     <div class="col-md-4 text-center">
                         <div class="fs-1 text-primary"><i class="bi bi-graph-up-arrow"></i></div>
-                        <h6>3. Track Progress</h6>
-                        <small class="text-muted">Results stored for comparison over time</small>
+                        <h6>3. Your Score</h6>
+                        <small class="text-muted">Get your AI-First Adoption Score with tailored recommendations</small>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-document.getElementById('assessForm').addEventListener('submit', function() {
-    const btn = document.getElementById('submitBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Scanning website & scoring (30-60s)...';
-});
-</script>
 {% endblock %}

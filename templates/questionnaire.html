@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Assessment — {{ company_name }} | AI-First Mindset{% endblock %}
+
+{% block extra_css %}
+<style>
+    .question-card {
+        transition: border-color 0.2s;
+    }
+    .question-card.answered {
+        border-left: 4px solid var(--ai-blue) !important;
+    }
+    .form-check-input:checked {
+        background-color: var(--ai-blue);
+        border-color: var(--ai-blue);
+    }
+    .option-label {
+        cursor: pointer;
+        padding: 0.6rem 1rem;
+        border-radius: 8px;
+        margin-bottom: 0.35rem;
+        transition: background 0.15s;
+        display: block;
+    }
+    .option-label:hover {
+        background: var(--ai-light-blue);
+    }
+    .form-check-input:checked + .option-label {
+        background: var(--ai-light-blue);
+        font-weight: 600;
+    }
+    .progress-indicator {
+        font-size: 0.9rem;
+        color: var(--ai-blue);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hero-section text-center" style="padding: 1.5rem 0;">
+    <div class="container">
+        <h2 class="fw-bold mb-1" style="color: var(--ai-yellow);">{{ company_name }}</h2>
+        <p class="mb-0" style="color: var(--ai-light-blue);">AI-First Adoption Assessment</p>
+    </div>
+</div>
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Progress -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="progress-indicator fw-semibold">
+                    <i class="bi bi-check-circle"></i> <span id="answeredCount">0</span> of {{ questions|length }} answered
+                </span>
+                <span class="text-muted small">All questions required</span>
+            </div>
+            <div class="category-bar mb-4" style="height: 8px;">
+                <div class="category-bar-fill bg-success" id="progressBar" style="width: 0%;"></div>
+            </div>
+
+            <form action="/assess" method="POST" id="questionnaireForm">
+                <input type="hidden" name="step" value="questionnaire">
+                <input type="hidden" name="company_name" value="{{ company_name }}">
+                <input type="hidden" name="website_url" value="{{ website_url }}">
+                <input type="hidden" name="industry_segment" value="{{ industry_segment }}">
+                <input type="hidden" name="company_size" value="{{ company_size }}">
+
+                {% for q in questions %}
+                <div class="card p-4 mb-3 question-card" id="card_{{ q.id }}">
+                    <h5 class="mb-1">
+                        <span class="badge bg-primary me-2" style="font-size: 0.8rem;">{{ loop.index }}/{{ questions|length }}</span>
+                        {{ q.name }}
+                    </h5>
+                    <p class="text-muted mb-3">{{ q.question }}</p>
+
+                    {% for opt in q.options %}
+                    <div class="d-flex align-items-start">
+                        <input class="form-check-input mt-2 me-2 flex-shrink-0" type="radio"
+                               name="{{ q.id }}" id="{{ q.id }}_{{ opt.value }}"
+                               value="{{ opt.value }}" required
+                               onchange="updateProgress()">
+                        <label class="option-label" for="{{ q.id }}_{{ opt.value }}">
+                            <span class="badge bg-{% if opt.value <= 2 %}danger{% elif opt.value == 3 %}warning{% else %}success{% endif %} me-1" style="font-size: 0.7rem;">{{ opt.value }}</span>
+                            {{ opt.label }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+
+                <div class="text-center mt-4 mb-5">
+                    <button type="submit" class="btn btn-ai btn-lg px-5" id="submitBtn" disabled>
+                        <i class="bi bi-lightning-charge-fill"></i> Get My AI-First Score
+                    </button>
+                    <div class="text-muted small mt-2">Scoring is instant. AI recommendations take ~15 seconds.</div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const totalQuestions = {{ questions|length }};
+
+function updateProgress() {
+    const answered = document.querySelectorAll('input[type="radio"]:checked').length;
+    document.getElementById('answeredCount').textContent = answered;
+    document.getElementById('progressBar').style.width = (answered / totalQuestions * 100) + '%';
+
+    // Highlight answered cards
+    document.querySelectorAll('.question-card').forEach(card => {
+        const id = card.id.replace('card_', '');
+        const checked = document.querySelector(`input[name="${id}"]:checked`);
+        card.classList.toggle('answered', !!checked);
+    });
+
+    // Enable submit when all answered
+    document.getElementById('submitBtn').disabled = (answered < totalQuestions);
+}
+
+// Form submission loading state
+document.getElementById('questionnaireForm').addEventListener('submit', function() {
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating your report...';
+});
+</script>
+{% endblock %}

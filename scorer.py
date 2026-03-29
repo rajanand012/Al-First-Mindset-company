@@ -1,4 +1,4 @@
-"""Structured AI-First Mindset scoring engine using Claude API (temperature 0)."""
+"""Deterministic AI-First Adoption scoring + Claude API recommendations."""
 
 import json
 import os
@@ -8,129 +8,128 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# --- Scoring Rubric ---
-# 10 categories, each scored 1-5. Max total = 50, scaled to 100%.
+# --- 10 Self-Assessment Questions (scored 1-5) ---
 
-SCORING_CATEGORIES = [
+QUESTIONS = [
     {
-        "id": "ai_presence",
-        "name": "AI Presence on Website",
-        "question": "Does the company prominently mention AI, machine learning, or intelligent automation on their website (homepage, about page, etc.)?",
-        "scoring": {
-            1: "No mention of AI anywhere",
-            2: "Brief or passing mention of AI",
-            3: "AI mentioned in multiple places but not central",
-            4: "AI featured prominently as a key part of the business",
-            5: "AI is core to their identity and messaging throughout",
-        },
+        "id": "ai_strategy",
+        "name": "AI Strategy",
+        "question": "Does your company have a formal AI or digital transformation strategy?",
+        "options": [
+            {"value": 1, "label": "No plans or discussions about AI"},
+            {"value": 2, "label": "Informal discussions but no formal strategy"},
+            {"value": 3, "label": "AI strategy in development or partially defined"},
+            {"value": 4, "label": "Formal AI strategy with clear goals and timeline"},
+            {"value": 5, "label": "Published AI-first strategy with executive sponsorship and measurable KPIs"},
+        ],
+    },
+    {
+        "id": "ai_production",
+        "name": "AI in Production",
+        "question": "How is AI used in your manufacturing or production processes?",
+        "options": [
+            {"value": 1, "label": "Not used at all"},
+            {"value": 2, "label": "Exploring or piloting AI in one area"},
+            {"value": 3, "label": "AI deployed in a few production processes (e.g., quality inspection or monitoring)"},
+            {"value": 4, "label": "AI integrated across multiple production areas (predictive maintenance, optimization, etc.)"},
+            {"value": 5, "label": "AI-driven across production — predictive maintenance, quality, process optimization, digital twins"},
+        ],
+    },
+    {
+        "id": "data_infrastructure",
+        "name": "Data Infrastructure",
+        "question": "How mature is your data collection and analytics infrastructure?",
+        "options": [
+            {"value": 1, "label": "Mostly manual processes and paper-based records"},
+            {"value": 2, "label": "Basic digital data collection with spreadsheets or simple databases"},
+            {"value": 3, "label": "Centralized data systems with dashboards and regular reporting"},
+            {"value": 4, "label": "Advanced analytics platform with automated data pipelines"},
+            {"value": 5, "label": "Real-time data platform with ML pipelines, data lakes, and AI-ready infrastructure"},
+        ],
     },
     {
         "id": "ai_products",
         "name": "AI-Powered Products & Services",
-        "question": "Does the company offer products or services that are powered by or enhanced with AI/ML?",
-        "scoring": {
-            1: "No AI-powered offerings visible",
-            2: "One product with minor AI features",
-            3: "Several products with AI features",
-            4: "AI-powered products are a significant part of their portfolio",
-            5: "Their core product line is built around AI capabilities",
-        },
-    },
-    {
-        "id": "smart_manufacturing",
-        "name": "Smart Manufacturing & Industry 4.0",
-        "question": "Is there evidence of AI/ML in their manufacturing processes (predictive maintenance, quality inspection, process optimization, digital twins, IoT)?",
-        "scoring": {
-            1: "No evidence of smart manufacturing",
-            2: "Basic automation mentioned but no AI/ML",
-            3: "Some AI/ML in manufacturing processes",
-            4: "Significant AI integration across manufacturing",
-            5: "Fully AI-driven smart factory / Industry 4.0 leader",
-        },
-    },
-    {
-        "id": "data_strategy",
-        "name": "Data Strategy & Analytics",
-        "question": "Does the company show evidence of a data-driven approach (analytics platforms, data collection, dashboards, data-informed decisions)?",
-        "scoring": {
-            1: "No evidence of data strategy",
-            2: "Basic reporting or analytics mentioned",
-            3: "Clear data analytics capabilities described",
-            4: "Advanced analytics and data platforms in use",
-            5: "Comprehensive data strategy with real-time analytics and AI-driven insights",
-        },
-    },
-    {
-        "id": "ai_talent",
-        "name": "AI Talent & Team",
-        "question": "Does the company appear to invest in AI talent (AI/ML job listings, dedicated AI teams, AI partnerships, AI leadership roles)?",
-        "scoring": {
-            1: "No evidence of AI talent investment",
-            2: "General tech roles, no AI-specific positions",
-            3: "Some AI/ML roles or partnerships mentioned",
-            4: "Dedicated AI team or department visible",
-            5: "Strong AI leadership (Chief AI Officer, AI labs, major AI partnerships)",
-        },
-    },
-    {
-        "id": "innovation_rd",
-        "name": "AI Innovation & R&D",
-        "question": "Is there evidence of AI research, patents, innovation labs, or R&D investment in AI/ML?",
-        "scoring": {
-            1: "No evidence of AI R&D",
-            2: "General R&D mentioned but not AI-specific",
-            3: "Some AI research or innovation projects",
-            4: "Active AI R&D program with published results",
-            5: "Industry-leading AI research with patents, publications, or innovation labs",
-        },
-    },
-    {
-        "id": "customer_experience",
-        "name": "AI in Customer Experience",
-        "question": "Does the company use AI to enhance customer experience (chatbots, personalization, AI-powered support, recommendation engines)?",
-        "scoring": {
-            1: "No AI in customer-facing interactions",
-            2: "Basic chatbot or simple automation",
-            3: "AI-enhanced support or personalization visible",
-            4: "Multiple AI touchpoints in the customer journey",
-            5: "Deeply personalized, AI-driven customer experience throughout",
-        },
+        "question": "Do your products or services incorporate AI capabilities?",
+        "options": [
+            {"value": 1, "label": "No AI in our products or services"},
+            {"value": 2, "label": "Exploring how to add AI features to existing products"},
+            {"value": 3, "label": "One or two products have AI-enhanced features"},
+            {"value": 4, "label": "AI is a significant differentiator in several products"},
+            {"value": 5, "label": "AI is a core differentiator across our product line"},
+        ],
     },
     {
         "id": "supply_chain",
         "name": "AI in Supply Chain & Operations",
-        "question": "Is there evidence of AI/ML in supply chain management, demand forecasting, logistics optimization, or inventory management?",
-        "scoring": {
-            1: "No evidence of AI in supply chain",
-            2: "Basic supply chain digitization only",
-            3: "Some AI applications in supply chain",
-            4: "AI-driven supply chain optimization in multiple areas",
-            5: "End-to-end AI-optimized supply chain and operations",
-        },
+        "question": "How is AI used in your supply chain and operations?",
+        "options": [
+            {"value": 1, "label": "No AI in supply chain or operations"},
+            {"value": 2, "label": "Basic digitization of supply chain processes"},
+            {"value": 3, "label": "Using AI for one area (e.g., demand forecasting or inventory)"},
+            {"value": 4, "label": "AI-driven optimization in multiple supply chain areas"},
+            {"value": 5, "label": "End-to-end AI-optimized supply chain — forecasting, logistics, inventory, and procurement"},
+        ],
     },
     {
-        "id": "ai_strategy",
-        "name": "AI Strategy & Vision",
-        "question": "Does the company communicate a clear AI strategy, digital transformation roadmap, or AI-first vision?",
-        "scoring": {
-            1: "No AI strategy communicated",
-            2: "Vague mention of digital transformation",
-            3: "Some strategic AI goals mentioned",
-            4: "Clear AI strategy with specific goals and timeline",
-            5: "Published AI-first strategy with measurable objectives and leadership commitment",
-        },
+        "id": "ai_talent",
+        "name": "AI Talent & Culture",
+        "question": "Does your organization invest in AI skills and talent?",
+        "options": [
+            {"value": 1, "label": "No AI-specific roles or training"},
+            {"value": 2, "label": "A few employees self-learning AI on the side"},
+            {"value": 3, "label": "Some AI training programs or external AI consultants engaged"},
+            {"value": 4, "label": "Dedicated AI team or department with ongoing hiring"},
+            {"value": 5, "label": "AI leadership roles (e.g., Chief AI Officer), company-wide AI training, and active AI hiring"},
+        ],
     },
     {
-        "id": "ai_ethics",
+        "id": "ai_budget",
+        "name": "AI Budget & Investment",
+        "question": "What level of investment is allocated to AI initiatives?",
+        "options": [
+            {"value": 1, "label": "No dedicated AI budget"},
+            {"value": 2, "label": "Small experimental budget within IT"},
+            {"value": 3, "label": "Defined AI budget for specific projects"},
+            {"value": 4, "label": "Significant AI budget with multi-year commitment"},
+            {"value": 5, "label": "Major AI investment with clear ROI tracking and board-level visibility"},
+        ],
+    },
+    {
+        "id": "customer_experience",
+        "name": "AI in Customer Experience",
+        "question": "How does AI enhance your customer interactions?",
+        "options": [
+            {"value": 1, "label": "No AI in customer-facing processes"},
+            {"value": 2, "label": "Basic automation (e.g., auto-reply emails)"},
+            {"value": 3, "label": "AI chatbot or one AI-powered customer touchpoint"},
+            {"value": 4, "label": "Multiple AI touchpoints — personalization, smart support, recommendations"},
+            {"value": 5, "label": "Deeply personalized, AI-driven customer experience across all channels"},
+        ],
+    },
+    {
+        "id": "ai_governance",
         "name": "Responsible AI & Governance",
-        "question": "Does the company address AI ethics, responsible AI practices, AI governance, transparency, or bias mitigation?",
-        "scoring": {
-            1: "No mention of AI ethics or governance",
-            2: "Generic corporate responsibility mentioned",
-            3: "Some AI ethics or data privacy practices noted",
-            4: "Clear responsible AI framework or guidelines",
-            5: "Comprehensive AI governance with published principles, audits, and oversight",
-        },
+        "question": "Do you have responsible AI practices and governance in place?",
+        "options": [
+            {"value": 1, "label": "AI ethics not yet considered"},
+            {"value": 2, "label": "Aware of AI ethics but no formal practices"},
+            {"value": 3, "label": "Some data privacy and AI usage guidelines in place"},
+            {"value": 4, "label": "Formal responsible AI framework with documented guidelines"},
+            {"value": 5, "label": "Comprehensive AI governance — ethics board, regular audits, bias monitoring, transparency reports"},
+        ],
+    },
+    {
+        "id": "innovation_rd",
+        "name": "AI Innovation & R&D",
+        "question": "How active is AI in your R&D and innovation pipeline?",
+        "options": [
+            {"value": 1, "label": "No AI involvement in R&D"},
+            {"value": 2, "label": "Exploring AI tools for R&D tasks"},
+            {"value": 3, "label": "AI used in some R&D projects or prototyping"},
+            {"value": 4, "label": "Active AI R&D program with measurable outcomes"},
+            {"value": 5, "label": "AI-driven innovation lab, patents, or published research — AI is central to our R&D"},
+        ],
     },
 ]
 
@@ -153,156 +152,34 @@ def get_grade(percentage):
     return "F", "AI-Absent"
 
 
-def build_scoring_prompt(company_name, website_url, web_content,
-                         industry_segment="", company_size=""):
-    """Build the structured prompt for Claude to score each category."""
+def score_assessment(company_name, website_url, industry_segment,
+                     company_size, answers):
+    """Score deterministically from questionnaire answers. Returns result dict.
 
-    rubric_text = ""
-    for i, cat in enumerate(SCORING_CATEGORIES, 1):
-        rubric_text += f"\n### Category {i}: {cat['name']}\n"
-        rubric_text += f"**Question:** {cat['question']}\n"
-        rubric_text += "**Scoring Guide:**\n"
-        for score, desc in cat["scoring"].items():
-            rubric_text += f"  {score} = {desc}\n"
-
-    prompt = f"""You are an expert analyst evaluating a manufacturing company's AI-First Mindset maturity.
-
-## Company Information
-- **Company Name:** {company_name}
-- **Website:** {website_url}
-- **Industry Segment:** {industry_segment or 'Manufacturing (general)'}
-- **Company Size:** {company_size or 'Not specified'}
-
-## Website Content (scraped from their site)
-<website_content>
-{web_content[:80000]}
-</website_content>
-
-## Your Task
-Score this company across exactly 10 categories using ONLY the evidence found in the website content above. Be objective and evidence-based. If something is not mentioned on their website, score it low — do not assume capabilities that are not documented.
-
-## Scoring Rubric
-{rubric_text}
-
-## Required Output Format
-You MUST respond with ONLY a valid JSON object in this exact structure (no markdown, no explanation, just JSON):
-
-{{
-  "scores": [
-    {{
-      "category_id": "ai_presence",
-      "score": <1-5>,
-      "evidence": "<brief quote or description of evidence found, or 'No evidence found'>"
-    }},
-    {{
-      "category_id": "ai_products",
-      "score": <1-5>,
-      "evidence": "<brief evidence>"
-    }},
-    {{
-      "category_id": "smart_manufacturing",
-      "score": <1-5>,
-      "evidence": "<brief evidence>"
-    }},
-    {{
-      "category_id": "data_strategy",
-      "score": <1-5>,
-      "evidence": "<brief evidence>"
-    }},
-    {{
-      "category_id": "ai_talent",
-      "score": <1-5>,
-      "evidence": "<brief evidence>"
-    }},
-    {{
-      "category_id": "innovation_rd",
-      "score": <1-5>,
-      "evidence": "<brief evidence>"
-    }},
-    {{
-      "category_id": "customer_experience",
-      "score": <1-5>,
-      "evidence": "<brief evidence>"
-    }},
-    {{
-      "category_id": "supply_chain",
-      "score": <1-5>,
-      "evidence": "<brief evidence>"
-    }},
-    {{
-      "category_id": "ai_strategy",
-      "score": <1-5>,
-      "evidence": "<brief evidence>"
-    }},
-    {{
-      "category_id": "ai_ethics",
-      "score": <1-5>,
-      "evidence": "<brief evidence>"
-    }}
-  ],
-  "top_recommendations": [
-    "<recommendation 1: most impactful action to improve AI maturity>",
-    "<recommendation 2>",
-    "<recommendation 3>",
-    "<recommendation 4>",
-    "<recommendation 5>"
-  ],
-  "executive_summary": "<2-3 sentence summary of the company's AI-First Mindset maturity>"
-}}"""
-
-    return prompt
-
-
-def run_assessment(company_name, website_url, web_content,
-                   industry_segment="", company_size=""):
-    """Call Claude API with temperature=0 to score the company. Returns full result dict."""
-
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not api_key:
-        raise ValueError("ANTHROPIC_API_KEY not set. Add it to your .env file.")
-
-    client = anthropic.Anthropic(api_key=api_key)
-
-    prompt = build_scoring_prompt(
-        company_name, website_url, web_content,
-        industry_segment, company_size
-    )
-
-    message = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=2000,
-        temperature=0,
-        messages=[{"role": "user", "content": prompt}],
-    )
-
-    raw_response = message.content[0].text.strip()
-
-    # Parse JSON — handle possible markdown wrapping
-    if raw_response.startswith("```"):
-        raw_response = raw_response.split("\n", 1)[1]
-        if raw_response.endswith("```"):
-            raw_response = raw_response[:-3]
-
-    result = json.loads(raw_response)
-
-    # Build category scores with names
+    answers: dict mapping question id -> selected value (1-5)
+    """
+    question_lookup = {q["id"]: q for q in QUESTIONS}
     category_scores = []
     total_score = 0
-    cat_lookup = {c["id"]: c for c in SCORING_CATEGORIES}
 
-    for item in result["scores"]:
-        cat = cat_lookup.get(item["category_id"], {})
-        score = max(1, min(5, int(item["score"])))
+    for q in QUESTIONS:
+        score = max(1, min(5, int(answers.get(q["id"], 1))))
         total_score += score
+        # Find the label for the selected score
+        selected_label = ""
+        for opt in q["options"]:
+            if opt["value"] == score:
+                selected_label = opt["label"]
+                break
         category_scores.append({
-            "category_id": item["category_id"],
-            "name": cat.get("name", item["category_id"]),
+            "category_id": q["id"],
+            "name": q["name"],
             "score": score,
             "max_score": 5,
-            "evidence": item.get("evidence", ""),
+            "selected_label": selected_label,
         })
 
-    max_score = len(SCORING_CATEGORIES) * 5
+    max_score = len(QUESTIONS) * 5
     percentage = round((total_score / max_score) * 100, 1)
     grade, grade_label = get_grade(percentage)
 
@@ -317,6 +194,71 @@ def run_assessment(company_name, website_url, web_content,
         "grade": grade,
         "grade_label": grade_label,
         "category_scores": category_scores,
-        "recommendations": result.get("top_recommendations", []),
-        "executive_summary": result.get("executive_summary", ""),
     }
+
+
+def generate_recommendations(result):
+    """Use Claude API (temperature=0) to generate tailored recommendations."""
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise ValueError("ANTHROPIC_API_KEY not set. Add it to your .env file.")
+
+    client = anthropic.Anthropic(api_key=api_key)
+
+    # Build context from scores
+    scores_summary = "\n".join(
+        f"- {cat['name']}: {cat['score']}/5 — \"{cat['selected_label']}\""
+        for cat in result["category_scores"]
+    )
+
+    # Identify weakest areas
+    sorted_cats = sorted(result["category_scores"], key=lambda c: c["score"])
+    weakest = sorted_cats[:3]
+    weakest_text = ", ".join(c["name"] for c in weakest)
+
+    prompt = f"""You are an AI strategy advisor for manufacturing companies.
+
+## Company Profile
+- **Company:** {result['company_name']}
+- **Website:** {result['website_url']}
+- **Industry:** {result.get('industry_segment') or 'Manufacturing (general)'}
+- **Size:** {result.get('company_size') or 'Not specified'}
+- **Overall AI Adoption Score:** {result['percentage']}% (Grade: {result['grade']} — {result['grade_label']})
+
+## Self-Assessment Scores
+{scores_summary}
+
+## Weakest Areas: {weakest_text}
+
+## Your Task
+Based on this manufacturer's self-assessment, provide:
+1. A 2-3 sentence executive summary of their AI maturity
+2. Exactly 5 specific, actionable recommendations prioritized by impact — focus on their weakest areas and their specific industry segment
+
+Respond with ONLY a valid JSON object (no markdown, no explanation):
+
+{{
+  "executive_summary": "<2-3 sentence summary>",
+  "recommendations": [
+    "<recommendation 1 — most impactful>",
+    "<recommendation 2>",
+    "<recommendation 3>",
+    "<recommendation 4>",
+    "<recommendation 5>"
+  ]
+}}"""
+
+    message = client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=1500,
+        temperature=0,
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    raw = message.content[0].text.strip()
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[1]
+        if raw.endswith("```"):
+            raw = raw[:-3]
+
+    return json.loads(raw)
