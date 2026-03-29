@@ -2,7 +2,9 @@
 
 import json
 import os
+import re
 import time
+import traceback
 
 import anthropic
 from dotenv import load_dotenv
@@ -35,11 +37,31 @@ def fetch_ecosystem_insights(company_name, industry_segment):
 
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
+        print("Ecosystem insights: No API key set")
         return _fallback_insights()
 
-    client = anthropic.Anthropic(api_key=api_key)
+    try:
+        insights = _fetch_with_web_search(company_name, industry_segment, api_key)
+        _cache[key] = {"data": insights, "timestamp": time.time()}
+        return insights
+    except Exception as e:
+        print(f"Ecosystem insights (web search) error: {e}")
+        traceback.print_exc()
 
-    prompt = f"""You are researching AI adoption trends in the {industry_segment or 'manufacturing'} industry to provide context for a company called "{company_name}".
+    # Fallback: try without web search (uses Claude's training data)
+    try:
+        insights = _fetch_without_web_search(company_name, industry_segment, api_key)
+        _cache[key] = {"data": insights, "timestamp": time.time()}
+        return insights
+    except Exception as e:
+        print(f"Ecosystem insights (fallback) error: {e}")
+        traceback.print_exc()
+
+    return _fallback_insights()
+
+
+def _build_prompt(company_name, industry_segment):
+    return f"""You are researching AI adoption trends in the {industry_segment or 'manufacturing'} industry to provide context for a company called "{company_name}".
 
 Find recent, real examples of how OTHER companies in this industry ecosystem (peers, leaders, or adjacent players — NOT {company_name} itself) are using AI. Focus on well-known companies in the {industry_segment or 'manufacturing'} space.
 
@@ -56,9 +78,13 @@ Provide exactly 10 brief insights, one for each of these categories:
 9. ai_governance — A peer's responsible AI or governance initiative
 10. innovation_rd — A peer's AI research, patents, or innovation lab
 
-Each insight should be 1-2 sentences, factual, recent, and mention the specific company name. Start each with "Did you know?" or a similar engaging hook.
+IMPORTANT RULES:
+- Each insight MUST include specific numbers (dollar amounts, percentages, headcount, ROI figures, timelines). Example: "Did you know? Siemens invested $1.2B in AI-driven manufacturing in 2025, targeting 30% productivity gains."
+- Each insight must be 1-2 sentences and mention the specific company name.
+- The "source" field must cite a real publication or report name (e.g., "Reuters, 2025" or "Company Annual Report 2025").
+- Start each with "Did you know?" or a similar engaging hook.
 
-Respond with ONLY valid JSON (no markdown):
+Respond with ONLY valid JSON (no markdown, no commentary, no code fences):
 
 [
   {{"question_id": "ai_strategy", "insight": "...", "source": "..."}},
@@ -73,37 +99,95 @@ Respond with ONLY valid JSON (no markdown):
   {{"question_id": "innovation_rd", "insight": "...", "source": "..."}}
 ]"""
 
-    try:
-        message = client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=3000,
+
+def _fetch_with_web_search(company_name, industry_segment, api_key):
+    """Try fetching insights using Claude's web search tool."""
+    client = anthropic.Anthropic(api_key=api_key)
+    prompt = _build_prompt(company_name, industry_segment)
+
+    # Initial call with web search tool
+    messages = [{"role": "user", "content": prompt}]
+    tools = [{"type": "web_search_20250305", "name": "web_search", "max_uses": 3}]
+
+    # Handle multi-turn: Claude may need to call the tool and then respond
+    max_turns = 5
+    for _ in range(max_turns):
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=2500,
             temperature=0,
-            tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 5}],
-            messages=[{"role": "user", "content": prompt}],
+            tools=tools,
+            messages=messages,
         )
 
-        # Extract text from response (may have multiple content blocks with tool use)
-        raw_text = ""
-        for block in message.content:
-            if hasattr(block, "text"):
-                raw_text += block.text
+        # If Claude is done (end_turn), extract text
+        if response.stop_reason == "end_turn":
+            return _extract_insights(response.content)
 
-        # Clean up markdown wrapping if present
-        raw_text = raw_text.strip()
-        if raw_text.startswith("```"):
-            raw_text = raw_text.split("\n", 1)[1]
-            if raw_text.endswith("```"):
-                raw_text = raw_text[:-3]
+        # If Claude wants to use a tool, we need to pass results back
+        # For server-side tools like web_search, the API handles it automatically
+        # If we still get tool_use, something unexpected happened
+        if response.stop_reason == "tool_use":
+            # Append assistant message and empty tool results to continue
+            messages.append({"role": "assistant", "content": response.content})
+            tool_results = []
+            for block in response.content:
+                if block.type == "tool_use":
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": "Search completed.",
+                    })
+            messages.append({"role": "user", "content": tool_results})
+        else:
+            # Some other stop reason — extract whatever text we got
+            return _extract_insights(response.content)
 
-        insights = json.loads(raw_text)
+    return _extract_insights(response.content)
 
-        # Cache the result
-        _cache[key] = {"data": insights, "timestamp": time.time()}
-        return insights
 
-    except Exception as e:
-        print(f"Ecosystem insights error: {e}")
-        return _fallback_insights()
+def _fetch_without_web_search(company_name, industry_segment, api_key):
+    """Fallback: fetch insights using Claude's training knowledge (no web search)."""
+    client = anthropic.Anthropic(api_key=api_key)
+    prompt = _build_prompt(company_name, industry_segment)
+
+    response = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=2500,
+        temperature=0,
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    return _extract_insights(response.content)
+
+
+def _extract_insights(content_blocks):
+    """Extract JSON insights from Claude's response content blocks."""
+    raw_text = ""
+    for block in content_blocks:
+        if hasattr(block, "text"):
+            raw_text += block.text
+
+    raw_text = raw_text.strip()
+
+    # Remove markdown code fences if present
+    if "```" in raw_text:
+        match = re.search(r"```(?:json)?\s*([\s\S]*?)```", raw_text)
+        if match:
+            raw_text = match.group(1).strip()
+
+    # Try to find JSON array in the text
+    bracket_start = raw_text.find("[")
+    bracket_end = raw_text.rfind("]")
+    if bracket_start != -1 and bracket_end != -1:
+        raw_text = raw_text[bracket_start:bracket_end + 1]
+
+    insights = json.loads(raw_text)
+
+    if not isinstance(insights, list) or len(insights) == 0:
+        raise ValueError("Invalid insights format")
+
+    return insights
 
 
 def _fallback_insights():
