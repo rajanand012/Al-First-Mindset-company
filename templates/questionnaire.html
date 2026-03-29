@@ -56,14 +56,50 @@
         padding: 5rem 1.5rem 5rem;
         opacity: 0.3;
         transition: opacity 0.5s ease;
+        position: relative;
     }
     .q-slide.visible { opacity: 1; }
+
+    /* --- Alternating slide backgrounds --- */
+    .q-slide:nth-child(odd) {
+        background: var(--ai-white);
+    }
+    .q-slide:nth-child(even) {
+        background: linear-gradient(180deg, #f7fcfe 0%, #eef7fb 100%);
+    }
+
+    /* --- Decorative background shapes --- */
+    .q-slide::before {
+        content: '';
+        position: absolute;
+        border-radius: 50%;
+        opacity: 0.04;
+        background: var(--ai-blue);
+        pointer-events: none;
+    }
+    .q-slide:nth-child(3n+1)::before {
+        width: 400px; height: 400px;
+        top: -100px; right: -100px;
+    }
+    .q-slide:nth-child(3n+2)::before {
+        width: 300px; height: 300px;
+        bottom: -80px; left: -80px;
+    }
+    .q-slide:nth-child(3n)::before {
+        width: 500px; height: 500px;
+        top: 50%; right: -200px;
+        transform: translateY(-50%);
+        background: var(--ai-yellow);
+    }
+
     .q-slide-inner {
         max-width: 1000px;
         width: 100%;
         display: flex;
         gap: 2rem;
         align-items: flex-start;
+        position: relative;
+        z-index: 1;
     }
 
     /* --- Question Side --- */
@@ -99,16 +135,19 @@
         border-radius: 12px;
         cursor: pointer;
         transition: all 0.2s ease;
-        background: var(--ai-white);
+        background: rgba(255,255,255,0.85);
+        backdrop-filter: blur(4px);
     }
     .q-option:hover {
         border-color: var(--ai-blue);
         background: var(--ai-light-blue);
+        transform: translateX(4px);
     }
     .q-option.selected {
         border-color: var(--ai-blue);
         background: var(--ai-light-blue);
         box-shadow: 0 0 0 1px var(--ai-blue);
+        transform: translateX(4px);
     }
     .q-option input[type="radio"] { display: none; }
     .q-option-dot {
@@ -134,13 +173,6 @@
         font-size: 0.95rem;
         color: var(--ai-charcoal);
     }
-    .q-option-score {
-        font-size: 0.75rem; font-weight: 700;
-        color: var(--ai-blue);
-        margin-left: auto;
-        padding-left: 0.5rem;
-        opacity: 0.5;
-    }
 
     /* --- Insight Side --- */
     .q-insight {
@@ -148,17 +180,16 @@
         min-width: 0;
     }
     .q-insight-card {
-        background: var(--ai-light-blue);
+        background: var(--ai-white);
         border-radius: 16px;
         padding: 1.5rem;
         border-left: 4px solid var(--ai-yellow);
-        opacity: 0;
-        transform: translateX(20px);
-        transition: opacity 0.6s ease, transform 0.6s ease;
+        box-shadow: 0 4px 16px rgba(32, 119, 150, 0.08);
+        transition: opacity 0.4s ease, transform 0.4s ease;
     }
-    .q-insight-card.loaded {
-        opacity: 1;
-        transform: translateX(0);
+    .q-insight-card.upgrading {
+        opacity: 0.3;
+        transform: translateY(5px);
     }
     .q-insight-header {
         font-size: 0.75rem; font-weight: 700;
@@ -182,25 +213,16 @@
         color: #888;
         margin-top: 0.75rem;
     }
-    /* Skeleton loader */
-    .q-insight-skeleton {
-        padding: 1.5rem;
-        background: var(--ai-light-blue);
-        border-radius: 16px;
-        border-left: 4px solid #cce8f2;
-    }
-    .skeleton-line {
-        height: 12px;
-        background: linear-gradient(90deg, #cce8f2 25%, #b8e0ef 50%, #cce8f2 75%);
-        background-size: 200% 100%;
-        animation: shimmer 1.5s infinite;
-        border-radius: 6px;
-        margin-bottom: 0.6rem;
-    }
-    .skeleton-line:last-child { width: 60%; margin-bottom: 0; }
-    @keyframes shimmer {
-        0% { background-position: 200% 0; }
-        100% { background-position: -200% 0; }
+    .q-insight-live-badge {
+        display: inline-block;
+        font-size: 0.65rem;
+        font-weight: 700;
+        color: var(--ai-white);
+        background: var(--ai-blue);
+        padding: 0.15rem 0.5rem;
+        border-radius: 10px;
+        margin-left: 0.4rem;
+        vertical-align: middle;
     }
 
     /* --- Navigation (fixed bottom) --- */
@@ -238,8 +260,12 @@
         background: var(--ai-yellow);
         color: var(--ai-charcoal);
         font-weight: 800;
+        padding: 0.65rem 2rem;
+        font-size: 1.05rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(243, 175, 0, 0.3);
     }
-    .q-nav-submit:hover { background: #d99d00; }
+    .q-nav-submit:hover { background: #d99d00; box-shadow: 0 4px 12px rgba(243, 175, 0, 0.4); }
     .q-nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
     /* --- Welcome Slide --- */
@@ -253,6 +279,9 @@
         color: var(--ai-blue);
         margin-top: 1rem;
     }
+    .q-welcome-start {
+        margin-top: 2rem;
+    }
 
     /* --- Responsive --- */
     @media (max-width: 768px) {
@@ -263,6 +292,7 @@
         .q-insight { order: 2; }
         .q-title { font-size: 1.3rem; }
         .q-option { padding: 0.7rem 1rem; }
+        .q-slide::before { display: none; }
     }
 </style>
 {% endblock %}
@@ -290,7 +320,7 @@
 
     <div class="q-container" id="qContainer">
         <!-- Welcome Slide -->
-        <div class="q-slide visible" id="slide-welcome">
+        <div class="q-slide visible" id="slide-welcome" style="background: linear-gradient(180deg, var(--ai-white) 0%, #eef7fb 100%);">
             <div class="q-welcome">
                 <img src="https://cdn.aifirstmindset.ai/wp-content/uploads/2025/10/AIFM-Registered-Logo-White-1.svg"
                      alt="AI-First Mindset" height="60"
@@ -300,6 +330,11 @@
                 <div class="q-welcome-company">
                     <i class="bi bi-building"></i> {{ company_name }}
                     {% if industry_segment %} &bull; {{ industry_segment }}{% endif %}
+                </div>
+                <div class="q-welcome-start">
+                    <button type="button" class="q-nav-btn q-nav-next" onclick="navigate(1)" style="padding: 0.75rem 2.5rem; font-size: 1.1rem;">
+                        Let's Begin <i class="bi bi-arrow-right"></i>
+                    </button>
                 </div>
             </div>
         </div>
@@ -325,13 +360,7 @@
 
                 <!-- Ecosystem Insight -->
                 <div class="q-insight">
-                    <div class="q-insight-skeleton" id="skeleton-{{ q.id }}">
-                        <div class="skeleton-line" style="width: 40%;"></div>
-                        <div class="skeleton-line"></div>
-                        <div class="skeleton-line"></div>
-                        <div class="skeleton-line"></div>
-                    </div>
-                    <div class="q-insight-card" id="insight-{{ q.id }}" style="display: none;">
+                    <div class="q-insight-card loaded" id="insight-{{ q.id }}">
                         <div class="q-insight-header">
                             <span class="q-insight-icon"><i class="bi bi-lightbulb-fill"></i></span>
                             In Your Ecosystem
@@ -356,7 +385,7 @@
             Next <i class="bi bi-arrow-right"></i>
         </button>
         <button type="button" class="q-nav-btn q-nav-submit" id="btnSubmit" onclick="submitForm()" style="display: none;">
-            <i class="bi bi-lightning-charge-fill"></i> Get My Score
+            <i class="bi bi-lightning-charge-fill"></i> Get My AI-First Score
         </button>
     </div>
 </div>
@@ -369,6 +398,28 @@ const totalSlides = totalQuestions + 1; // welcome + questions
 const container = document.getElementById('qContainer');
 let currentSlide = 0;
 let answeredSet = new Set();
+
+// --- Default industry insights (shown immediately while live data loads) ---
+const defaultInsights = {
+    "ai_strategy": { insight: "Did you know? 72% of manufacturing CEOs say AI strategy is their top priority for 2025-2026, up from 42% in 2023.", source: "McKinsey Global Survey, 2025" },
+    "ai_production": { insight: "Did you know? Manufacturers using AI-driven production optimization report 20-30% reductions in unplanned downtime.", source: "Deloitte Smart Factory Report, 2025" },
+    "data_infrastructure": { insight: "Did you know? Companies with mature data infrastructure are 3x more likely to successfully deploy AI at scale.", source: "Gartner, 2025" },
+    "ai_products": { insight: "Did you know? 58% of industrial product companies plan to embed AI features in their core offerings by 2027.", source: "PwC Industrial AI Survey, 2025" },
+    "supply_chain": { insight: "Did you know? AI-powered demand forecasting reduces supply chain costs by 15-25% and inventory by up to 35%.", source: "BCG Supply Chain Report, 2025" },
+    "ai_talent": { insight: "Did you know? Manufacturing AI job postings grew 68% year-over-year, with the average AI engineer salary reaching $185K.", source: "LinkedIn Workforce Report, 2025" },
+    "ai_budget": { insight: "Did you know? Global manufacturing AI spending is projected to reach $68B by 2027, a 4x increase from 2023.", source: "IDC Worldwide AI Spending Guide, 2025" },
+    "customer_experience": { insight: "Did you know? B2B manufacturers using AI personalization see 40% higher customer retention and 25% faster quote-to-order cycles.", source: "Forrester B2B CX Report, 2025" },
+    "ai_governance": { insight: "Did you know? The EU AI Act now requires manufacturers to implement AI risk assessments, affecting 85% of industrial AI deployments.", source: "EU AI Act Compliance Guide, 2025" },
+    "innovation_rd": { insight: "Did you know? Manufacturing AI patent filings increased 145% over the last 3 years, led by companies investing over 5% of revenue in R&D.", source: "WIPO Technology Trends Report, 2025" }
+};
+
+// Populate default insights immediately on load
+Object.keys(defaultInsights).forEach(qid => {
+    const textEl = document.getElementById('insight-text-' + qid);
+    const sourceEl = document.getElementById('insight-source-' + qid);
+    if (textEl) textEl.textContent = defaultInsights[qid].insight;
+    if (sourceEl) sourceEl.innerHTML = '<i class="bi bi-bar-chart-line"></i> ' + defaultInsights[qid].source;
+});
 
 // --- Navigation ---
 function navigate(direction) {
@@ -387,11 +438,17 @@ function goToSlide(index) {
 function updateNav() {
     document.getElementById('btnBack').disabled = (currentSlide === 0);
 
-    const isLast = (currentSlide === totalSlides - 1);
     const allAnswered = (answeredSet.size >= totalQuestions);
 
-    document.getElementById('btnNext').style.display = isLast ? 'none' : '';
-    document.getElementById('btnSubmit').style.display = (isLast && allAnswered) ? '' : 'none';
+    // Show submit button when all questions answered (on any slide)
+    if (allAnswered) {
+        document.getElementById('btnSubmit').style.display = '';
+        // Hide next if on last slide
+        document.getElementById('btnNext').style.display = (currentSlide >= totalSlides - 1) ? 'none' : '';
+    } else {
+        document.getElementById('btnSubmit').style.display = 'none';
+        document.getElementById('btnNext').style.display = '';
+    }
 
     // Progress
     const pct = Math.round((answeredSet.size / totalQuestions) * 100);
@@ -412,12 +469,10 @@ function selectOption(el) {
     answeredSet.add(questionId);
     updateNav();
 
-    // Auto-advance after 500ms
-    if (currentSlide < totalSlides - 1) {
+    // Auto-advance after 500ms (unless all answered — let them submit)
+    const allAnswered = (answeredSet.size >= totalQuestions);
+    if (currentSlide < totalSlides - 1 && !allAnswered) {
         setTimeout(() => navigate(1), 500);
-    } else {
-        // On last question, show submit
-        updateNav();
     }
 }
 
@@ -434,7 +489,6 @@ const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
         if (entry.isIntersecting) {
             entry.target.classList.add('visible');
-            // Update currentSlide index
             const allSlides = [...document.querySelectorAll('.q-slide')];
             currentSlide = allSlides.indexOf(entry.target);
             updateNav();
@@ -450,11 +504,10 @@ document.querySelectorAll('.q-slide').forEach(slide => observer.observe(slide));
 document.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { e.preventDefault(); navigate(1); }
     if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
-    if (e.key === 'Enter' && currentSlide === totalSlides - 1 && answeredSet.size >= totalQuestions) {
+    if (e.key === 'Enter' && answeredSet.size >= totalQuestions) {
         e.preventDefault();
         submitForm();
     }
-    // Number keys 1-5 to select option
     if (currentSlide > 0 && e.key >= '1' && e.key <= '5') {
         const slideEl = document.querySelectorAll('.q-slide')[currentSlide];
         const options = slideEl.querySelectorAll('.q-option');
@@ -463,7 +516,7 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// --- Fetch Ecosystem Insights ---
+// --- Fetch Live Ecosystem Insights (upgrade defaults with real data) ---
 (function() {
     fetch('/api/ecosystem-insights', {
         method: 'POST',
@@ -476,26 +529,26 @@ document.addEventListener('keydown', (e) => {
     .then(res => res.json())
     .then(insights => {
         insights.forEach(item => {
-            const skeleton = document.getElementById('skeleton-' + item.question_id);
             const card = document.getElementById('insight-' + item.question_id);
-            const text = document.getElementById('insight-text-' + item.question_id);
-            const source = document.getElementById('insight-source-' + item.question_id);
+            const textEl = document.getElementById('insight-text-' + item.question_id);
+            const sourceEl = document.getElementById('insight-source-' + item.question_id);
 
-            if (skeleton && card && text) {
-                text.textContent = item.insight;
-                if (source && item.source) {
-                    source.innerHTML = '<i class="bi bi-link-45deg"></i> ' + item.source;
-                }
-                skeleton.style.display = 'none';
-                card.style.display = '';
-                setTimeout(() => card.classList.add('loaded'), 50);
+            if (card && textEl && item.insight) {
+                // Fade out, swap, fade in
+                card.classList.add('upgrading');
+                setTimeout(() => {
+                    textEl.textContent = item.insight;
+                    if (sourceEl && item.source) {
+                        sourceEl.innerHTML = '<i class="bi bi-link-45deg"></i> ' + item.source +
+                            ' <span class="q-insight-live-badge">LIVE</span>';
+                    }
+                    card.classList.remove('upgrading');
+                }, 300);
             }
         });
     })
     .catch(err => {
-        // Hide all skeletons on error — insights are supplementary
-        document.querySelectorAll('.q-insight-skeleton').forEach(s => s.style.display = 'none');
-        console.log('Ecosystem insights unavailable:', err);
+        console.log('Live ecosystem insights unavailable, using defaults:', err);
     });
 })();
 
