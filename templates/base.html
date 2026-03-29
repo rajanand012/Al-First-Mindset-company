@@ -116,7 +116,8 @@
     </style>
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
+    {% block navbar %}
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
             <a class="navbar-brand" href="/">
@@ -129,6 +130,7 @@
             </div>
         </div>
     </nav>
+    {% endblock %}
 
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
@@ -145,9 +147,11 @@
 
     {% block content %}{% endblock %}
 
+    {% block footer %}
     <footer class="text-center text-muted py-4 mt-5">
         <small>AI-First Mindset Assessment Tool &mdash; Powered by Claude API</small>
     </footer>
+    {% endblock %}
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     {% block extra_js %}{% endblock %}

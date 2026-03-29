@@ -1,100 +1,363 @@
 {% extends "base.html" %}
 {% block title %}Assessment — {{ company_name }} | AI-First Mindset{% endblock %}
 
+{% block body_class %}immersive{% endblock %}
+
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+
 {% block extra_css %}
 <style>
-    .question-card {
-        transition: border-color 0.2s;
+    body.immersive {
+        background: var(--ai-white);
+        overflow: hidden;
     }
-    .question-card.answered {
-        border-left: 4px solid var(--ai-blue) !important;
+
+    /* --- Progress Bar (fixed top) --- */
+    .q-progress {
+        position: fixed; top: 0; left: 0; right: 0;
+        z-index: 1000;
+        background: var(--ai-white);
+        border-bottom: 1px solid #e8e8e8;
+        padding: 0.6rem 1.5rem;
+        display: flex; align-items: center; gap: 1rem;
     }
-    .form-check-input:checked {
-        background-color: var(--ai-blue);
-        border-color: var(--ai-blue);
+    .q-progress-logo img { height: 28px; }
+    .q-progress-bar {
+        flex: 1; height: 6px; border-radius: 3px;
+        background: #e2e8f0; overflow: hidden;
     }
-    .option-label {
-        cursor: pointer;
-        padding: 0.6rem 1rem;
-        border-radius: 8px;
-        margin-bottom: 0.35rem;
-        transition: background 0.15s;
-        display: block;
+    .q-progress-fill {
+        height: 100%; border-radius: 3px;
+        background: var(--ai-yellow);
+        transition: width 0.5s ease;
     }
-    .option-label:hover {
-        background: var(--ai-light-blue);
+    .q-progress-text {
+        font-size: 0.85rem; font-weight: 600;
+        color: var(--ai-charcoal); white-space: nowrap;
     }
-    .form-check-input:checked + .option-label {
-        background: var(--ai-light-blue);
-        font-weight: 600;
+
+    /* --- Scroll Snap Container --- */
+    .q-container {
+        height: 100vh;
+        overflow-y: scroll;
+        scroll-snap-type: y mandatory;
+        scroll-behavior: smooth;
     }
-    .progress-indicator {
-        font-size: 0.9rem;
+
+    /* --- Each Slide --- */
+    .q-slide {
+        height: 100vh;
+        scroll-snap-align: start;
+        scroll-snap-stop: always;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 5rem 1.5rem 5rem;
+        opacity: 0.3;
+        transition: opacity 0.5s ease;
+    }
+    .q-slide.visible { opacity: 1; }
+    .q-slide-inner {
+        max-width: 1000px;
+        width: 100%;
+        display: flex;
+        gap: 2rem;
+        align-items: flex-start;
+    }
+
+    /* --- Question Side --- */
+    .q-question {
+        flex: 3;
+        min-width: 0;
+    }
+    .q-number {
+        font-size: 0.8rem; font-weight: 700;
         color: var(--ai-blue);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 0.5rem;
+    }
+    .q-title {
+        font-size: 1.6rem; font-weight: 800;
+        color: var(--ai-charcoal);
+        margin-bottom: 0.25rem;
+    }
+    .q-text {
+        font-size: 1.05rem;
+        color: #555;
+        margin-bottom: 1.5rem;
+    }
+
+    /* --- Option Cards --- */
+    .q-option {
+        display: flex;
+        align-items: center;
+        padding: 0.85rem 1.2rem;
+        margin-bottom: 0.5rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: var(--ai-white);
+    }
+    .q-option:hover {
+        border-color: var(--ai-blue);
+        background: var(--ai-light-blue);
+    }
+    .q-option.selected {
+        border-color: var(--ai-blue);
+        background: var(--ai-light-blue);
+        box-shadow: 0 0 0 1px var(--ai-blue);
+    }
+    .q-option input[type="radio"] { display: none; }
+    .q-option-dot {
+        width: 22px; height: 22px;
+        border-radius: 50%;
+        border: 2px solid #ccc;
+        margin-right: 0.9rem;
+        flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        transition: all 0.2s;
+    }
+    .q-option.selected .q-option-dot {
+        border-color: var(--ai-blue);
+        background: var(--ai-blue);
+    }
+    .q-option.selected .q-option-dot::after {
+        content: '';
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        background: var(--ai-white);
+    }
+    .q-option-label {
+        font-size: 0.95rem;
+        color: var(--ai-charcoal);
+    }
+    .q-option-score {
+        font-size: 0.75rem; font-weight: 700;
+        color: var(--ai-blue);
+        margin-left: auto;
+        padding-left: 0.5rem;
+        opacity: 0.5;
+    }
+
+    /* --- Insight Side --- */
+    .q-insight {
+        flex: 2;
+        min-width: 0;
+    }
+    .q-insight-card {
+        background: var(--ai-light-blue);
+        border-radius: 16px;
+        padding: 1.5rem;
+        border-left: 4px solid var(--ai-yellow);
+        opacity: 0;
+        transform: translateX(20px);
+        transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .q-insight-card.loaded {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    .q-insight-header {
+        font-size: 0.75rem; font-weight: 700;
+        color: var(--ai-blue);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 0.5rem;
+    }
+    .q-insight-icon {
+        color: var(--ai-yellow);
+        font-size: 1.3rem;
+        margin-right: 0.4rem;
+    }
+    .q-insight-text {
+        font-size: 0.92rem;
+        color: var(--ai-charcoal);
+        line-height: 1.5;
+    }
+    .q-insight-source {
+        font-size: 0.75rem;
+        color: #888;
+        margin-top: 0.75rem;
+    }
+    /* Skeleton loader */
+    .q-insight-skeleton {
+        padding: 1.5rem;
+        background: var(--ai-light-blue);
+        border-radius: 16px;
+        border-left: 4px solid #cce8f2;
+    }
+    .skeleton-line {
+        height: 12px;
+        background: linear-gradient(90deg, #cce8f2 25%, #b8e0ef 50%, #cce8f2 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+        border-radius: 6px;
+        margin-bottom: 0.6rem;
+    }
+    .skeleton-line:last-child { width: 60%; margin-bottom: 0; }
+    @keyframes shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+
+    /* --- Navigation (fixed bottom) --- */
+    .q-nav {
+        position: fixed; bottom: 0; left: 0; right: 0;
+        z-index: 1000;
+        background: var(--ai-white);
+        border-top: 1px solid #e8e8e8;
+        padding: 0.75rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .q-nav-btn {
+        padding: 0.5rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .q-nav-back {
+        background: transparent;
+        color: var(--ai-charcoal);
+        border: 2px solid #e2e8f0;
+    }
+    .q-nav-back:hover { border-color: var(--ai-blue); color: var(--ai-blue); }
+    .q-nav-next {
+        background: var(--ai-blue);
+        color: var(--ai-white);
+    }
+    .q-nav-next:hover { background: var(--ai-primary-dark); }
+    .q-nav-submit {
+        background: var(--ai-yellow);
+        color: var(--ai-charcoal);
+        font-weight: 800;
+    }
+    .q-nav-submit:hover { background: #d99d00; }
+    .q-nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* --- Welcome Slide --- */
+    .q-welcome {
+        text-align: center;
+    }
+    .q-welcome h1 { color: var(--ai-yellow); font-size: 2.5rem; font-weight: 800; }
+    .q-welcome p { font-size: 1.1rem; color: #555; max-width: 500px; margin: 0 auto; }
+    .q-welcome-company {
+        font-size: 1.3rem; font-weight: 700;
+        color: var(--ai-blue);
+        margin-top: 1rem;
+    }
+
+    /* --- Responsive --- */
+    @media (max-width: 768px) {
+        .q-slide-inner {
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .q-insight { order: 2; }
+        .q-title { font-size: 1.3rem; }
+        .q-option { padding: 0.7rem 1rem; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="hero-section text-center" style="padding: 1.5rem 0;">
-    <div class="container">
-        <h2 class="fw-bold mb-1" style="color: var(--ai-yellow);">{{ company_name }}</h2>
-        <p class="mb-0" style="color: var(--ai-light-blue);">AI-First Adoption Assessment</p>
+<!-- Progress Bar -->
+<div class="q-progress">
+    <div class="q-progress-logo">
+        <img src="https://cdn.aifirstmindset.ai/wp-content/uploads/2025/10/AIFM-Registered-Logo-White-1.svg"
+             alt="AI-First Mindset" style="filter: brightness(0) saturate(100%) invert(28%) sepia(60%) saturate(600%) hue-rotate(160deg);">
     </div>
+    <div class="q-progress-bar">
+        <div class="q-progress-fill" id="progressFill" style="width: 0%;"></div>
+    </div>
+    <div class="q-progress-text" id="progressText">0 of {{ questions|length }}</div>
 </div>
 
-<div class="container py-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <!-- Progress -->
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="progress-indicator fw-semibold">
-                    <i class="bi bi-check-circle"></i> <span id="answeredCount">0</span> of {{ questions|length }} answered
-                </span>
-                <span class="text-muted small">All questions required</span>
-            </div>
-            <div class="category-bar mb-4" style="height: 8px;">
-                <div class="category-bar-fill bg-success" id="progressBar" style="width: 0%;"></div>
-            </div>
+<!-- Form wrapping all slides -->
+<form action="/assess" method="POST" id="questionnaireForm">
+    <input type="hidden" name="step" value="questionnaire">
+    <input type="hidden" name="company_name" value="{{ company_name }}">
+    <input type="hidden" name="website_url" value="{{ website_url }}">
+    <input type="hidden" name="industry_segment" value="{{ industry_segment }}">
+    <input type="hidden" name="company_size" value="{{ company_size }}">
 
-            <form action="/assess" method="POST" id="questionnaireForm">
-                <input type="hidden" name="step" value="questionnaire">
-                <input type="hidden" name="company_name" value="{{ company_name }}">
-                <input type="hidden" name="website_url" value="{{ website_url }}">
-                <input type="hidden" name="industry_segment" value="{{ industry_segment }}">
-                <input type="hidden" name="company_size" value="{{ company_size }}">
+    <div class="q-container" id="qContainer">
+        <!-- Welcome Slide -->
+        <div class="q-slide visible" id="slide-welcome">
+            <div class="q-welcome">
+                <img src="https://cdn.aifirstmindset.ai/wp-content/uploads/2025/10/AIFM-Registered-Logo-White-1.svg"
+                     alt="AI-First Mindset" height="60"
+                     style="filter: brightness(0) saturate(100%) invert(28%) sepia(60%) saturate(600%) hue-rotate(160deg); margin-bottom: 1.5rem;">
+                <h1>AI-First Adoption Score</h1>
+                <p>Answer 10 quick questions to discover where you stand in your AI journey</p>
+                <div class="q-welcome-company">
+                    <i class="bi bi-building"></i> {{ company_name }}
+                    {% if industry_segment %} &bull; {{ industry_segment }}{% endif %}
+                </div>
+            </div>
+        </div>
 
-                {% for q in questions %}
-                <div class="card p-4 mb-3 question-card" id="card_{{ q.id }}">
-                    <h5 class="mb-1">
-                        <span class="badge bg-primary me-2" style="font-size: 0.8rem;">{{ loop.index }}/{{ questions|length }}</span>
-                        {{ q.name }}
-                    </h5>
-                    <p class="text-muted mb-3">{{ q.question }}</p>
+        <!-- Question Slides -->
+        {% for q in questions %}
+        <div class="q-slide" id="slide-{{ q.id }}" data-index="{{ loop.index }}">
+            <div class="q-slide-inner">
+                <!-- Question -->
+                <div class="q-question">
+                    <div class="q-number">Question {{ loop.index }} of {{ questions|length }}</div>
+                    <div class="q-title">{{ q.name }}</div>
+                    <div class="q-text">{{ q.question }}</div>
 
                     {% for opt in q.options %}
-                    <div class="d-flex align-items-start">
-                        <input class="form-check-input mt-2 me-2 flex-shrink-0" type="radio"
-                               name="{{ q.id }}" id="{{ q.id }}_{{ opt.value }}"
-                               value="{{ opt.value }}" required
-                               onchange="updateProgress()">
-                        <label class="option-label" for="{{ q.id }}_{{ opt.value }}">
-                            <span class="badge bg-{% if opt.value <= 2 %}danger{% elif opt.value == 3 %}warning{% else %}success{% endif %} me-1" style="font-size: 0.7rem;">{{ opt.value }}</span>
-                            {{ opt.label }}
-                        </label>
-                    </div>
+                    <label class="q-option" data-question="{{ q.id }}" data-value="{{ opt.value }}" onclick="selectOption(this)">
+                        <input type="radio" name="{{ q.id }}" value="{{ opt.value }}" required>
+                        <span class="q-option-dot"></span>
+                        <span class="q-option-label">{{ opt.label }}</span>
+                    </label>
                     {% endfor %}
                 </div>
-                {% endfor %}
 
-                <div class="text-center mt-4 mb-5">
-                    <button type="submit" class="btn btn-ai btn-lg px-5" id="submitBtn" disabled>
-                        <i class="bi bi-lightning-charge-fill"></i> Get My AI-First Score
-                    </button>
-                    <div class="text-muted small mt-2">Scoring is instant. AI recommendations take ~15 seconds.</div>
+                <!-- Ecosystem Insight -->
+                <div class="q-insight">
+                    <div class="q-insight-skeleton" id="skeleton-{{ q.id }}">
+                        <div class="skeleton-line" style="width: 40%;"></div>
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line"></div>
+                    </div>
+                    <div class="q-insight-card" id="insight-{{ q.id }}" style="display: none;">
+                        <div class="q-insight-header">
+                            <span class="q-insight-icon"><i class="bi bi-lightbulb-fill"></i></span>
+                            In Your Ecosystem
+                        </div>
+                        <div class="q-insight-text" id="insight-text-{{ q.id }}"></div>
+                        <div class="q-insight-source" id="insight-source-{{ q.id }}"></div>
+                    </div>
                 </div>
-            </form>
+            </div>
         </div>
+        {% endfor %}
+    </div>
+</form>
+
+<!-- Navigation -->
+<div class="q-nav">
+    <button type="button" class="q-nav-btn q-nav-back" id="btnBack" onclick="navigate(-1)" disabled>
+        <i class="bi bi-arrow-left"></i> Back
+    </button>
+    <div style="display: flex; gap: 0.5rem;">
+        <button type="button" class="q-nav-btn q-nav-next" id="btnNext" onclick="navigate(1)">
+            Next <i class="bi bi-arrow-right"></i>
+        </button>
+        <button type="button" class="q-nav-btn q-nav-submit" id="btnSubmit" onclick="submitForm()" style="display: none;">
+            <i class="bi bi-lightning-charge-fill"></i> Get My Score
+        </button>
     </div>
 </div>
 {% endblock %}
@@ -102,28 +365,141 @@
 {% block extra_js %}
 <script>
 const totalQuestions = {{ questions|length }};
+const totalSlides = totalQuestions + 1; // welcome + questions
+const container = document.getElementById('qContainer');
+let currentSlide = 0;
+let answeredSet = new Set();
 
-function updateProgress() {
-    const answered = document.querySelectorAll('input[type="radio"]:checked').length;
-    document.getElementById('answeredCount').textContent = answered;
-    document.getElementById('progressBar').style.width = (answered / totalQuestions * 100) + '%';
-
-    // Highlight answered cards
-    document.querySelectorAll('.question-card').forEach(card => {
-        const id = card.id.replace('card_', '');
-        const checked = document.querySelector(`input[name="${id}"]:checked`);
-        card.classList.toggle('answered', !!checked);
-    });
-
-    // Enable submit when all answered
-    document.getElementById('submitBtn').disabled = (answered < totalQuestions);
+// --- Navigation ---
+function navigate(direction) {
+    const target = currentSlide + direction;
+    if (target < 0 || target >= totalSlides) return;
+    goToSlide(target);
 }
 
-// Form submission loading state
-document.getElementById('questionnaireForm').addEventListener('submit', function() {
-    const btn = document.getElementById('submitBtn');
+function goToSlide(index) {
+    currentSlide = index;
+    const slides = document.querySelectorAll('.q-slide');
+    slides[index].scrollIntoView({ behavior: 'smooth' });
+    updateNav();
+}
+
+function updateNav() {
+    document.getElementById('btnBack').disabled = (currentSlide === 0);
+
+    const isLast = (currentSlide === totalSlides - 1);
+    const allAnswered = (answeredSet.size >= totalQuestions);
+
+    document.getElementById('btnNext').style.display = isLast ? 'none' : '';
+    document.getElementById('btnSubmit').style.display = (isLast && allAnswered) ? '' : 'none';
+
+    // Progress
+    const pct = Math.round((answeredSet.size / totalQuestions) * 100);
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressText').textContent = answeredSet.size + ' of ' + totalQuestions;
+}
+
+// --- Option Selection ---
+function selectOption(el) {
+    const questionId = el.dataset.question;
+    const radio = el.querySelector('input[type="radio"]');
+    radio.checked = true;
+
+    // Highlight selected
+    el.parentElement.querySelectorAll('.q-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+
+    answeredSet.add(questionId);
+    updateNav();
+
+    // Auto-advance after 500ms
+    if (currentSlide < totalSlides - 1) {
+        setTimeout(() => navigate(1), 500);
+    } else {
+        // On last question, show submit
+        updateNav();
+    }
+}
+
+// --- Submit ---
+function submitForm() {
+    const btn = document.getElementById('btnSubmit');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating your report...';
+    document.getElementById('questionnaireForm').submit();
+}
+
+// --- Intersection Observer for visibility ---
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            // Update currentSlide index
+            const allSlides = [...document.querySelectorAll('.q-slide')];
+            currentSlide = allSlides.indexOf(entry.target);
+            updateNav();
+        } else {
+            entry.target.classList.remove('visible');
+        }
+    });
+}, { threshold: 0.6 });
+
+document.querySelectorAll('.q-slide').forEach(slide => observer.observe(slide));
+
+// --- Keyboard Navigation ---
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Enter' && currentSlide === totalSlides - 1 && answeredSet.size >= totalQuestions) {
+        e.preventDefault();
+        submitForm();
+    }
+    // Number keys 1-5 to select option
+    if (currentSlide > 0 && e.key >= '1' && e.key <= '5') {
+        const slideEl = document.querySelectorAll('.q-slide')[currentSlide];
+        const options = slideEl.querySelectorAll('.q-option');
+        const idx = parseInt(e.key) - 1;
+        if (options[idx]) selectOption(options[idx]);
+    }
 });
+
+// --- Fetch Ecosystem Insights ---
+(function() {
+    fetch('/api/ecosystem-insights', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            company_name: '{{ company_name }}',
+            industry_segment: '{{ industry_segment }}'
+        })
+    })
+    .then(res => res.json())
+    .then(insights => {
+        insights.forEach(item => {
+            const skeleton = document.getElementById('skeleton-' + item.question_id);
+            const card = document.getElementById('insight-' + item.question_id);
+            const text = document.getElementById('insight-text-' + item.question_id);
+            const source = document.getElementById('insight-source-' + item.question_id);
+
+            if (skeleton && card && text) {
+                text.textContent = item.insight;
+                if (source && item.source) {
+                    source.innerHTML = '<i class="bi bi-link-45deg"></i> ' + item.source;
+                }
+                skeleton.style.display = 'none';
+                card.style.display = '';
+                setTimeout(() => card.classList.add('loaded'), 50);
+            }
+        });
+    })
+    .catch(err => {
+        // Hide all skeletons on error — insights are supplementary
+        document.querySelectorAll('.q-insight-skeleton').forEach(s => s.style.display = 'none');
+        console.log('Ecosystem insights unavailable:', err);
+    });
+})();
+
+// Initialize
+updateNav();
 </script>
 {% endblock %}

@@ -4,10 +4,11 @@ import os
 import traceback
 
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 
 from database import init_db, save_assessment, get_assessment, get_company_history, get_all_assessments
 from scorer import QUESTIONS, score_assessment, generate_recommendations
+from ecosystem_insights import fetch_ecosystem_insights
 
 load_dotenv()
 
@@ -139,6 +140,20 @@ def company_history(company_name):
         company_name=company_name,
         assessments=assessments,
     )
+
+
+@app.route("/api/ecosystem-insights", methods=["POST"])
+def ecosystem_insights():
+    """Async endpoint: fetch AI ecosystem insights for the company's industry."""
+    data = request.get_json(silent=True) or {}
+    company_name = data.get("company_name", "").strip()
+    industry_segment = data.get("industry_segment", "").strip()
+
+    if not company_name:
+        return jsonify([]), 400
+
+    insights = fetch_ecosystem_insights(company_name, industry_segment)
+    return jsonify(insights)
 
 
 if __name__ == "__main__":
