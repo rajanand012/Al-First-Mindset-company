@@ -283,6 +283,15 @@
         margin-top: 2rem;
     }
 
+    /* --- Shake animation for unanswered hint --- */
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        20% { transform: translateX(-6px); }
+        40% { transform: translateX(6px); }
+        60% { transform: translateX(-4px); }
+        80% { transform: translateX(4px); }
+    }
+
     /* --- Responsive --- */
     @media (max-width: 768px) {
         .q-slide-inner {
@@ -422,9 +431,35 @@ Object.keys(defaultInsights).forEach(qid => {
 });
 
 // --- Navigation ---
+function getQuestionIdForSlide(slideIndex) {
+    if (slideIndex <= 0) return null; // welcome slide
+    const slide = document.querySelectorAll('.q-slide')[slideIndex];
+    if (!slide) return null;
+    return slide.id.replace('slide-', '');
+}
+
+function isCurrentSlideAnswered() {
+    if (currentSlide === 0) return true; // welcome slide always OK
+    const qid = getQuestionIdForSlide(currentSlide);
+    return qid && answeredSet.has(qid);
+}
+
 function navigate(direction) {
     const target = currentSlide + direction;
     if (target < 0 || target >= totalSlides) return;
+
+    // Block forward navigation if current question not answered
+    if (direction > 0 && currentSlide > 0 && !isCurrentSlideAnswered()) {
+        // Shake the options to hint they need to pick one
+        const slide = document.querySelectorAll('.q-slide')[currentSlide];
+        const options = slide.querySelectorAll('.q-option');
+        options.forEach(o => {
+            o.style.animation = 'shake 0.4s ease';
+            setTimeout(() => o.style.animation = '', 400);
+        });
+        return;
+    }
+
     goToSlide(target);
 }
 
@@ -490,7 +525,16 @@ const observer = new IntersectionObserver((entries) => {
         if (entry.isIntersecting) {
             entry.target.classList.add('visible');
             const allSlides = [...document.querySelectorAll('.q-slide')];
-            currentSlide = allSlides.indexOf(entry.target);
+            const newIndex = allSlides.indexOf(entry.target);
+
+            // Block scrolling forward past an unanswered question
+            if (newIndex > currentSlide + 1 || (newIndex > currentSlide && currentSlide > 0 && !isCurrentSlideAnswered())) {
+                // Snap back to current
+                allSlides[currentSlide].scrollIntoView({ behavior: 'smooth' });
+                return;
+            }
+
+            currentSlide = newIndex;
             updateNav();
         } else {
             entry.target.classList.remove('visible');
