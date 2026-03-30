@@ -136,8 +136,23 @@ def results(assessment_id):
     )
 
 
-@app.route("/admin")
+@app.route("/admin", methods=["GET", "POST"])
 def admin():
+    admin_password = os.getenv("ADMIN_PASSWORD", "aifmos2026")
+
+    if request.method == "POST":
+        if request.form.get("password") == admin_password:
+            from flask import session
+            session["admin_auth"] = True
+            return redirect(url_for("admin"))
+        else:
+            flash("Incorrect password.", "error")
+            return render_template("admin_login.html")
+
+    from flask import session
+    if not session.get("admin_auth"):
+        return render_template("admin_login.html")
+
     assessments = get_all_assessments()
     return render_template("admin.html", assessments=assessments)
 

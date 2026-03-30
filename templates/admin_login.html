@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Admin Login | AI-First Mindset{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-4">
+            <div class="card p-4 text-center">
+                <i class="bi bi-shield-lock display-4 mb-3" style="color: var(--ai-blue);"></i>
+                <h4 class="fw-bold mb-3">Admin Access</h4>
+                <form method="POST" action="/admin">
+                    <div class="mb-3">
+                        <input type="password" class="form-control form-control-lg text-center" name="password"
+                               placeholder="Enter password" required autofocus>
+                    </div>
+                    <button type="submit" class="btn btn-ai btn-lg w-100">
+                        <i class="bi bi-unlock"></i> Login
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
