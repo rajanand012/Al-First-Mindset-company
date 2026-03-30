@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block title %}Admin — All Assessments | AI-First Mindset{% endblock %}
+
+{% block extra_css %}
+<style>
+    .admin-header {
+        background: var(--ai-charcoal);
+        color: var(--ai-white);
+        padding: 1.5rem 0;
+    }
+    .admin-header h2 { color: var(--ai-yellow); }
+    .admin-stat {
+        background: var(--ai-white);
+        border-radius: 12px;
+        padding: 1.2rem;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(32, 22, 0, 0.06);
+    }
+    .admin-stat-number {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--ai-blue);
+    }
+    .admin-stat-label {
+        font-size: 0.8rem;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .table th {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--ai-blue);
+        border-bottom: 2px solid var(--ai-blue);
+    }
+    .table td { vertical-align: middle; font-size: 0.9rem; }
+    .badge-grade {
+        font-size: 0.8rem;
+        padding: 0.3rem 0.6rem;
+        border-radius: 6px;
+        font-weight: 700;
+    }
+    .export-btn {
+        background: var(--ai-blue);
+        color: var(--ai-white);
+        border: none;
+        padding: 0.4rem 1rem;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        cursor: pointer;
+    }
+    .export-btn:hover { opacity: 0.9; color: var(--ai-white); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="fw-bold mb-0"><i class="bi bi-shield-lock"></i> Admin Dashboard</h2>
+                <small style="color: #aaa;">All assessment submissions</small>
+            </div>
+            <div>
+                {% if assessments %}
+                <button class="export-btn" onclick="exportCSV()">
+                    <i class="bi bi-download"></i> Export CSV
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-4">
+    <!-- Stats Row -->
+    {% if assessments %}
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="admin-stat">
+                <div class="admin-stat-number">{{ assessments|length }}</div>
+                <div class="admin-stat-label">Total Assessments</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="admin-stat">
+                <div class="admin-stat-number">{{ assessments|map(attribute='company_name')|unique|list|length }}</div>
+                <div class="admin-stat-label">Unique Companies</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="admin-stat">
+                {% set avg = (assessments|sum(attribute='percentage') / assessments|length)|round(1) %}
+                <div class="admin-stat-number">{{ avg }}%</div>
+                <div class="admin-stat-label">Average Score</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="admin-stat">
+                <div class="admin-stat-number">{{ assessments|map(attribute='respondent_email')|select|unique|list|length }}</div>
+                <div class="admin-stat-label">Unique Respondents</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Data Table -->
+    {% if assessments %}
+    <div class="card p-3">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="adminTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Date</th>
+                        <th>Respondent</th>
+                        <th>Email</th>
+                        <th>Designation</th>
+                        <th>Company</th>
+                        <th>Segment</th>
+                        <th>Size</th>
+                        <th>Score</th>
+                        <th>Grade</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in assessments %}
+                    <tr>
+                        <td class="text-muted">{{ a.id }}</td>
+                        <td><small>{{ a.created_at[:16] }}</small></td>
+                        <td class="fw-semibold">{{ a.respondent_name or '—' }}</td>
+                        <td><small>{{ a.respondent_email or '—' }}</small></td>
+                        <td><small>{{ a.respondent_designation or '—' }}</small></td>
+                        <td class="fw-semibold">{{ a.company_name }}</td>
+                        <td><small>{{ a.industry_segment or '—' }}</small></td>
+                        <td><small>{{ a.company_size or '—' }}</small></td>
+                        <td class="fw-bold">{{ a.percentage }}%</td>
+                        <td>
+                            <span class="badge-grade bg-{% if a.percentage >= 70 %}success{% elif a.percentage >= 50 %}primary{% elif a.percentage >= 30 %}warning{% else %}danger{% endif %}" style="color: {% if a.percentage >= 30 and a.percentage < 70 %}var(--ai-charcoal){% else %}#fff{% endif %};">
+                                {{ a.grade }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="/results/{{ a.id }}" class="btn btn-sm btn-outline-primary">View</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="bi bi-inbox display-1 text-muted"></i>
+        <p class="mt-3 text-muted">No assessments yet.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function exportCSV() {
+    const table = document.getElementById('adminTable');
+    const rows = table.querySelectorAll('tr');
+    let csv = [];
+
+    rows.forEach(row => {
+        const cols = row.querySelectorAll('td, th');
+        const rowData = [];
+        cols.forEach((col, i) => {
+            if (i < cols.length - 1) { // skip the View button column
+                let text = col.textContent.trim().replace(/"/g, '""');
+                rowData.push('"' + text + '"');
+            }
+        });
+        csv.push(rowData.join(','));
+    });
+
+    const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ai-first-assessments.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+</script>
+{% endblock %}

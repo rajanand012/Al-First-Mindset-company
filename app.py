@@ -33,18 +33,24 @@ def assess():
     step = request.form.get("step", "company_info")
 
     if step == "company_info":
+        respondent_name = request.form.get("respondent_name", "").strip()
+        respondent_email = request.form.get("respondent_email", "").strip()
+        respondent_designation = request.form.get("respondent_designation", "").strip()
         company_name = request.form.get("company_name", "").strip()
         website_url = request.form.get("website_url", "").strip()
         industry_segment = request.form.get("industry_segment", "").strip()
         company_size = request.form.get("company_size", "").strip()
 
-        if not company_name or not website_url:
-            flash("Company name and website URL are required.", "error")
+        if not company_name or not website_url or not respondent_name or not respondent_email:
+            flash("Name, email, company name and website URL are required.", "error")
             return redirect(url_for("index"))
 
         return render_template(
             "questionnaire.html",
             questions=QUESTIONS,
+            respondent_name=respondent_name,
+            respondent_email=respondent_email,
+            respondent_designation=respondent_designation,
             company_name=company_name,
             website_url=website_url,
             industry_segment=industry_segment,
@@ -52,6 +58,9 @@ def assess():
         )
 
     elif step == "questionnaire":
+        respondent_name = request.form.get("respondent_name", "").strip()
+        respondent_email = request.form.get("respondent_email", "").strip()
+        respondent_designation = request.form.get("respondent_designation", "").strip()
         company_name = request.form.get("company_name", "").strip()
         website_url = request.form.get("website_url", "").strip()
         industry_segment = request.form.get("industry_segment", "").strip()
@@ -81,6 +90,10 @@ def assess():
                 company_name, website_url,
                 industry_segment, company_size, answers
             )
+
+            result["respondent_name"] = respondent_name
+            result["respondent_email"] = respondent_email
+            result["respondent_designation"] = respondent_designation
 
             # Step 2: Generate AI recommendations via Claude API
             try:
@@ -140,6 +153,12 @@ def company_history(company_name):
         company_name=company_name,
         assessments=assessments,
     )
+
+
+@app.route("/admin")
+def admin():
+    assessments = get_all_assessments()
+    return render_template("admin.html", assessments=assessments)
 
 
 @app.route("/api/ecosystem-insights", methods=["POST"])

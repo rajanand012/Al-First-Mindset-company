@@ -18,6 +18,9 @@ def init_db():
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS assessments (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            respondent_name TEXT,
+            respondent_email TEXT,
+            respondent_designation TEXT,
             company_name TEXT NOT NULL,
             website_url TEXT NOT NULL,
             industry_segment TEXT,
@@ -45,11 +48,15 @@ def save_assessment(data):
     conn = get_db()
     cur = conn.execute(
         """INSERT INTO assessments
-           (company_name, website_url, industry_segment, company_size,
+           (respondent_name, respondent_email, respondent_designation,
+            company_name, website_url, industry_segment, company_size,
             overall_score, max_score, percentage, grade, grade_label,
             category_scores, recommendations, executive_summary)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
+            data.get("respondent_name", ""),
+            data.get("respondent_email", ""),
+            data.get("respondent_designation", ""),
             data["company_name"],
             data["website_url"],
             data.get("industry_segment", ""),

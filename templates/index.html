@@ -17,6 +17,26 @@
                 <form action="/assess" method="POST">
                     <input type="hidden" name="step" value="company_info">
 
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label for="respondent_name" class="form-label fw-semibold">Your Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="respondent_name" name="respondent_name"
+                                   placeholder="e.g. Jane Smith" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="respondent_email" class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="respondent_email" name="respondent_email"
+                                   placeholder="e.g. jane@company.com" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="respondent_designation" class="form-label fw-semibold">Designation <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="respondent_designation" name="respondent_designation"
+                                   placeholder="e.g. VP of Operations" required>
+                        </div>
+                    </div>
+
+                    <hr class="my-3">
+
                     <div class="mb-3">
                         <label for="company_name" class="form-label fw-semibold">Company Name <span class="text-danger">*</span></label>
                         <input type="text" class="form-control form-control-lg" id="company_name" name="company_name"

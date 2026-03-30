@@ -322,6 +322,9 @@
 <!-- Form wrapping all slides -->
 <form action="/assess" method="POST" id="questionnaireForm">
     <input type="hidden" name="step" value="questionnaire">
+    <input type="hidden" name="respondent_name" value="{{ respondent_name }}">
+    <input type="hidden" name="respondent_email" value="{{ respondent_email }}">
+    <input type="hidden" name="respondent_designation" value="{{ respondent_designation }}">
     <input type="hidden" name="company_name" value="{{ company_name }}">
     <input type="hidden" name="website_url" value="{{ website_url }}">
     <input type="hidden" name="industry_segment" value="{{ industry_segment }}">
