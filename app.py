@@ -126,13 +126,10 @@ def results(assessment_id):
         flash("Assessment not found.", "error")
         return redirect(url_for("index"))
 
-    history = get_company_history(assessment["company_name"])
-    previous = history[1] if len(history) > 1 else None
-
     return render_template(
         "results.html",
         assessment=assessment,
-        previous=previous,
+        previous=None,
     )
 
 
