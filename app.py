@@ -6,7 +6,7 @@ import traceback
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 
-from database import init_db, save_assessment, get_assessment, get_company_history, get_all_assessments
+from database import init_db, save_assessment, get_assessment, get_all_assessments
 from scorer import QUESTIONS, score_assessment, generate_recommendations
 from ecosystem_insights import fetch_ecosystem_insights
 
@@ -133,25 +133,6 @@ def results(assessment_id):
         "results.html",
         assessment=assessment,
         previous=previous,
-    )
-
-
-@app.route("/history")
-def history():
-    assessments = get_all_assessments()
-    return render_template("history.html", assessments=assessments)
-
-
-@app.route("/history/<company_name>")
-def company_history(company_name):
-    assessments = get_company_history(company_name)
-    if not assessments:
-        flash("No assessments found for that company.", "error")
-        return redirect(url_for("history"))
-    return render_template(
-        "company_history.html",
-        company_name=company_name,
-        assessments=assessments,
     )
 
 
