@@ -9,6 +9,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from database import init_db, save_assessment, get_assessment, get_all_assessments
 from scorer import QUESTIONS, score_assessment, generate_recommendations
 from ecosystem_insights import fetch_ecosystem_insights
+from emailer import send_assessment_notification
 
 load_dotenv()
 
@@ -109,6 +110,13 @@ def assess():
 
             # Step 3: Save to database
             assessment_id = save_assessment(result)
+
+            # Step 4: Send email notification
+            try:
+                send_assessment_notification(result)
+            except Exception:
+                traceback.print_exc()
+
             return redirect(url_for("results", assessment_id=assessment_id))
 
         except Exception as e:
