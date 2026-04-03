@@ -47,10 +47,10 @@
 
                     <div class="mb-3">
                         <label for="website_url" class="form-label fw-semibold">Company Website <span class="text-danger">*</span></label>
-                        <input type="url" class="form-control form-control-lg" id="website_url" name="website_url"
-                               placeholder="https://www.siemens.com" required
-                               pattern="https?://.+"
-                               title="Please enter a valid URL starting with http:// or https://">
+                        <input type="text" class="form-control form-control-lg" id="website_url" name="website_url"
+                               placeholder="e.g. siemens.com or https://www.siemens.com" required
+                               pattern="(https?://)?([a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}(/.*)?$"
+                               title="Please enter a valid website (e.g. siemens.com, www.siemens.com, or https://siemens.com)">
                     </div>
 
                     <div class="mb-3">
