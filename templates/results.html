@@ -7,12 +7,12 @@
         .no-print { display: none !important; }
         .card { box-shadow: none !important; border: 1px solid #ddd !important; }
     }
-    .pdf-header {
-        display: none;
-    }
-    .pdf-footer {
-        display: none;
-    }
+    .pdf-header { display: none; }
+    .pdf-footer { display: none; }
+    .pdf-mode .pdf-header { display: block !important; }
+    .pdf-mode .pdf-footer { display: block !important; }
+    .pdf-mode .no-print { display: none !important; }
+    .pdf-mode#assessmentReport { padding-top: 0 !important; padding-bottom: 0 !important; }
 </style>
 {% endblock %}
 
@@ -20,26 +20,26 @@
 <div class="container py-5" id="assessmentReport">
     <!-- PDF Cover (hidden on screen, shown in PDF) -->
     <div class="pdf-header" id="pdfHeader">
-        <div style="text-align: center; padding: 40px 20px 30px; margin-bottom: 24px;">
+        <div style="text-align: center; padding: 10px 20px 20px;">
             <img src="https://cdn.aifirstmindset.ai/wp-content/uploads/2025/10/AIFM-Registered-Logo-White-1.svg"
-                 height="50" style="filter: brightness(0) saturate(100%) invert(28%) sepia(60%) saturate(600%) hue-rotate(160deg); margin-bottom: 20px;">
-            <h1 style="font-size: 28px; font-weight: 800; color: #207796; margin: 0 0 6px;">AI-First Adoption Score</h1>
-            <div style="width: 60px; height: 4px; background: #f3af00; margin: 12px auto;"></div>
-            <h2 style="font-size: 22px; font-weight: 700; color: #201600; margin: 16px 0 8px;">{{ assessment.company_name }}</h2>
-            <p style="font-size: 13px; color: #888; margin: 0;">
+                 height="45" style="filter: brightness(0) saturate(100%) invert(28%) sepia(60%) saturate(600%) hue-rotate(160deg); margin-bottom: 14px;">
+            <h1 style="font-size: 26px; font-weight: 800; color: #207796; margin: 0 0 4px;">AI-First Adoption Score</h1>
+            <div style="width: 60px; height: 4px; background: #f3af00; margin: 10px auto;"></div>
+            <h2 style="font-size: 20px; font-weight: 700; color: #201600; margin: 12px 0 6px;">{{ assessment.company_name }}</h2>
+            <p style="font-size: 12px; color: #888; margin: 0;">
                 {{ assessment.website_url }}
                 {% if assessment.industry_segment %} &bull; {{ assessment.industry_segment }}{% endif %}
                 {% if assessment.company_size %} &bull; {{ assessment.company_size }}{% endif %}
             </p>
-            <p style="font-size: 12px; color: #aaa; margin-top: 8px;">Report generated {{ assessment.created_at[:10] }}</p>
-            <div style="border-bottom: 3px solid #207796; margin-top: 20px;"></div>
+            <p style="font-size: 11px; color: #aaa; margin-top: 6px;">Report generated {{ assessment.created_at[:10] }}</p>
+            <div style="border-bottom: 3px solid #207796; margin-top: 14px;"></div>
         </div>
     </div>
 
-    <!-- Header -->
-    <div class="row mb-4">
-        <div class="col">
-            <h2 class="fw-bold">{{ assessment.company_name }}</h2>
+    <!-- Top Action Buttons -->
+    <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+        <div>
+            <h2 class="fw-bold mb-0">{{ assessment.company_name }}</h2>
             <p class="text-muted mb-0">
                 <i class="bi bi-globe2"></i> {{ assessment.website_url }}
                 {% if assessment.industry_segment %}
@@ -48,8 +48,16 @@
                 {% if assessment.company_size %}
                 &nbsp;&bull;&nbsp; <i class="bi bi-people"></i> {{ assessment.company_size }}
                 {% endif %}
+                <br><small class="text-muted">Assessed on {{ assessment.created_at[:16] }}</small>
             </p>
-            <small class="text-muted">Assessed on {{ assessment.created_at[:16] }}</small>
+        </div>
+        <div>
+            <button onclick="downloadPDF()" class="btn btn-ai me-2" id="downloadBtnTop">
+                <i class="bi bi-file-earmark-pdf"></i> Download PDF
+            </button>
+            <a href="/" class="btn btn-outline-secondary">
+                <i class="bi bi-plus-circle-fill"></i> New Assessment
+            </a>
         </div>
     </div>
 
@@ -143,19 +151,19 @@
 
     <!-- PDF Footer (hidden on screen, shown in PDF) -->
     <div class="pdf-footer" id="pdfFooter">
-        <div style="margin-top: 32px; padding-top: 16px; border-top: 2px solid #207796; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #888;">
+        <div style="margin-top: 24px; padding-top: 12px; border-top: 2px solid #207796; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #888;">
             <span>AI-First Mindset Assessment Tool</span>
             <span>aifirstmindset.ai</span>
         </div>
     </div>
 
-    <!-- Action Buttons -->
+    <!-- Bottom Action Buttons -->
     <div class="text-center mt-4 no-print">
-        <button onclick="downloadPDF()" class="btn btn-ai me-2" id="downloadBtn">
+        <button onclick="downloadPDF()" class="btn btn-ai me-2" id="downloadBtnBottom">
             <i class="bi bi-file-earmark-pdf"></i> Download PDF Report
         </button>
         <a href="/" class="btn btn-outline-secondary">
-            <i class="bi bi-plus-circle"></i> New Assessment
+            <i class="bi bi-plus-circle-fill"></i> New Assessment
         </a>
     </div>
 </div>
@@ -165,22 +173,21 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
 <script>
 function downloadPDF() {
-    const btn = document.getElementById('downloadBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating PDF...';
-
-    // Show PDF header/footer
-    document.getElementById('pdfHeader').style.display = 'block';
-    document.getElementById('pdfFooter').style.display = 'block';
-
-    // Hide action buttons
-    document.querySelectorAll('.no-print').forEach(el => el.style.display = 'none');
+    // Disable both buttons
+    document.querySelectorAll('[id^="downloadBtn"]').forEach(btn => {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating PDF...';
+    });
 
     const element = document.getElementById('assessmentReport');
+
+    // Add PDF mode class (shows header/footer, hides buttons, removes padding)
+    element.classList.add('pdf-mode');
+
     const companyName = '{{ assessment.company_name }}'.replace(/[^a-zA-Z0-9]/g, '-');
 
     const opt = {
-        margin: [10, 12, 10, 12],
+        margin: [8, 10, 8, 10],
         filename: 'AI-First-Score-' + companyName + '.pdf',
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: {
@@ -198,11 +205,12 @@ function downloadPDF() {
 
     html2pdf().set(opt).from(element).save().then(() => {
         // Restore UI
-        document.getElementById('pdfHeader').style.display = 'none';
-        document.getElementById('pdfFooter').style.display = 'none';
-        document.querySelectorAll('.no-print').forEach(el => el.style.display = '');
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-file-earmark-pdf"></i> Download PDF Report';
+        element.classList.remove('pdf-mode');
+        document.querySelectorAll('[id^="downloadBtn"]').forEach(btn => {
+            btn.disabled = false;
+        });
+        document.getElementById('downloadBtnTop').innerHTML = '<i class="bi bi-file-earmark-pdf"></i> Download PDF';
+        document.getElementById('downloadBtnBottom').innerHTML = '<i class="bi bi-file-earmark-pdf"></i> Download PDF Report';
     });
 }
 </script>
