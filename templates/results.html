@@ -1,8 +1,35 @@
 {% extends "base.html" %}
 {% block title %}Results: {{ assessment.company_name }} | AI-First Mindset{% endblock %}
 
+{% block extra_css %}
+<style>
+    @media print {
+        .no-print { display: none !important; }
+        .card { box-shadow: none !important; border: 1px solid #ddd !important; }
+    }
+    .pdf-header {
+        display: none;
+    }
+    .pdf-footer {
+        display: none;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container py-5">
+<div class="container py-5" id="assessmentReport">
+    <!-- PDF Header (hidden on screen, shown in PDF) -->
+    <div class="pdf-header" id="pdfHeader">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 3px solid #207796; margin-bottom: 24px;">
+            <img src="https://cdn.aifirstmindset.ai/wp-content/uploads/2025/10/AIFM-Registered-Logo-White-1.svg"
+                 height="40" style="filter: brightness(0) saturate(100%) invert(28%) sepia(60%) saturate(600%) hue-rotate(160deg);">
+            <div style="text-align: right; font-size: 12px; color: #888;">
+                AI-First Adoption Score Report<br>
+                Generated {{ assessment.created_at[:10] }}
+            </div>
+        </div>
+    </div>
+
     <!-- Header -->
     <div class="row mb-4">
         <div class="col">
@@ -108,8 +135,69 @@
         </div>
     </div>
 
-    <div class="text-center mt-4">
-        <a href="/" class="btn btn-ai"><i class="bi bi-plus-circle"></i> New Assessment</a>
+    <!-- PDF Footer (hidden on screen, shown in PDF) -->
+    <div class="pdf-footer" id="pdfFooter">
+        <div style="margin-top: 32px; padding-top: 16px; border-top: 2px solid #207796; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #888;">
+            <span>AI-First Mindset Assessment Tool</span>
+            <span>aifirstmindset.ai</span>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="text-center mt-4 no-print">
+        <button onclick="downloadPDF()" class="btn btn-ai me-2" id="downloadBtn">
+            <i class="bi bi-file-earmark-pdf"></i> Download PDF Report
+        </button>
+        <a href="/" class="btn btn-outline-secondary">
+            <i class="bi bi-plus-circle"></i> New Assessment
+        </a>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
+<script>
+function downloadPDF() {
+    const btn = document.getElementById('downloadBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating PDF...';
+
+    // Show PDF header/footer
+    document.getElementById('pdfHeader').style.display = 'block';
+    document.getElementById('pdfFooter').style.display = 'block';
+
+    // Hide action buttons
+    document.querySelectorAll('.no-print').forEach(el => el.style.display = 'none');
+
+    const element = document.getElementById('assessmentReport');
+    const companyName = '{{ assessment.company_name }}'.replace(/[^a-zA-Z0-9]/g, '-');
+
+    const opt = {
+        margin: [10, 12, 10, 12],
+        filename: 'AI-First-Score-' + companyName + '.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+            scale: 2,
+            useCORS: true,
+            letterRendering: true,
+        },
+        jsPDF: {
+            unit: 'mm',
+            format: 'a4',
+            orientation: 'portrait'
+        },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+
+    html2pdf().set(opt).from(element).save().then(() => {
+        // Restore UI
+        document.getElementById('pdfHeader').style.display = 'none';
+        document.getElementById('pdfFooter').style.display = 'none';
+        document.querySelectorAll('.no-print').forEach(el => el.style.display = '');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-file-earmark-pdf"></i> Download PDF Report';
+    });
+}
+</script>
 {% endblock %}

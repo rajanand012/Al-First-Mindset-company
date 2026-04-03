@@ -26,7 +26,9 @@
                         <div class="col-md-4">
                             <label for="respondent_email" class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
                             <input type="email" class="form-control" id="respondent_email" name="respondent_email"
-                                   placeholder="e.g. jane@company.com" required>
+                                   placeholder="e.g. jane@company.com" required
+                                   pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
+                                   title="Please enter a valid email address (e.g. jane@company.com)">
                         </div>
                         <div class="col-md-4">
                             <label for="respondent_designation" class="form-label fw-semibold">Designation <span class="text-danger">*</span></label>
@@ -45,8 +47,10 @@
 
                     <div class="mb-3">
                         <label for="website_url" class="form-label fw-semibold">Company Website <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control form-control-lg" id="website_url" name="website_url"
-                               placeholder="e.g. https://www.siemens.com" required>
+                        <input type="url" class="form-control form-control-lg" id="website_url" name="website_url"
+                               placeholder="https://www.siemens.com" required
+                               pattern="https?://.+"
+                               title="Please enter a valid URL starting with http:// or https://">
                     </div>
 
                     <div class="mb-3">
